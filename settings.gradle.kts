@@ -10,4 +10,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "simple-note"
+rootProject.name = "power-note"

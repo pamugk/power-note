@@ -1,6 +1,6 @@
 package navigation
 
-enum class Locations {
+enum class Location {
     MAIN,
-    DELETED,
+    ARCHIVE,
 }
