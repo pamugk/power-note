@@ -29,6 +29,12 @@ compose.desktop {
     application {
         mainClass = "MainKt"
 
+        buildTypes.release.proguard {
+            configurationFiles.from(
+                project.file("kotlinx-datetime-serialization.pro"),
+                project.file("kotlinx-serialization.pro")
+            )
+        }
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.AppImage)
             copyright = "© pamugk 2023. No rights reserved"
