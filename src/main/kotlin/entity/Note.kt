@@ -1,19 +1,26 @@
 package entity
 
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlin.time.Duration.Companion.days
 
 data class Note(
     // Технические данные
     val id: Long,
     val createdAt: Instant,
-    val archivedAt: Instant?,
-    val pendingDeletion: Boolean,
+    val lastUpdatedAt: Instant = createdAt,
+    var archivedAt: Instant?,
     // Содержимое
     val header: String,
     val content: String,
-)
+) {
+    val archived: Boolean
+        get() = archivedAt != null
 
-data class NoteData(
+}
+
+data class NoteDraft(
+    val id: Long? = null,
     val header: String,
     val content: String,
 )
