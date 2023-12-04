@@ -86,7 +86,7 @@ fun NotesPage(
                 ActivePane.LIST -> {
                     NoteList(
                         state.notes,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = modifier,
                         compact = compact,
                         allowedCreateNew = true,
                         draft = state.draft,
@@ -99,7 +99,7 @@ fun NotesPage(
                     if (state.draft != null && state.viewedNote?.id == state.draft.id) {
                         NoteEditor(
                             noteDraft = state.draft,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = modifier,
                             compact = compact,
                             onBack = onBack,
                             onResetChanges = onResetChanges,
@@ -109,7 +109,7 @@ fun NotesPage(
                     } else if (state.viewedNote != null) {
                         NoteView(
                             note = state.viewedNote,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = modifier,
                             compact = compact,
                             editInProcess = state.draft != null,
                             onBack = onBack,
@@ -120,7 +120,7 @@ fun NotesPage(
                 }
             }
         } else {
-            Row(modifier = Modifier.fillMaxSize()) {
+            Row(modifier = modifier) {
                 NoteList(
                     state.notes,
                     modifier = Modifier.fillMaxHeight().fillMaxWidth(0.4f),

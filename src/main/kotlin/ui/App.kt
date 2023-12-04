@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ui.data.state.AppState
-import ui.navigation.ActivePane
 import ui.navigation.Location
 import ui.pages.ArchivePage
 import ui.pages.NotesPage
@@ -42,9 +41,7 @@ fun App(viewModel: AppViewModel = AppViewModel()) {
 
             Scaffold(
                 bottomBar = {
-                    if (compactUi && (
-                                state.currentLocation == Location.MAIN && state.notesPageState.activePane == ActivePane.LIST
-                                    || state.currentLocation == Location.ARCHIVE && state.archivePageState.activePane == ActivePane.LIST)) {
+                    if (compactUi) {
                         NavigationBar {
                             destinations.forEach { destination ->
                                 NavigationBarItem(
@@ -64,6 +61,7 @@ fun App(viewModel: AppViewModel = AppViewModel()) {
                 if (compactUi) {
                     AppContent(
                         compact = compactUi,
+                        innerPadding = innerPadding,
                         scope = scope,
                         snackbarState = snackbarHostState,
                         state = state,
@@ -103,6 +101,7 @@ fun App(viewModel: AppViewModel = AppViewModel()) {
 @Composable
 private fun AppContent(
     compact: Boolean,
+    innerPadding: PaddingValues = PaddingValues(0.dp),
     scope: CoroutineScope,
     snackbarState: SnackbarHostState,
     state: AppState,
@@ -111,7 +110,7 @@ private fun AppContent(
     when (state.currentLocation) {
         Location.MAIN -> NotesPage(
             state = state.notesPageState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
             compact = compact,
             onArchiveNote = { archivedNote ->
                 viewModel.archiveNote(archivedNote)
@@ -142,7 +141,7 @@ private fun AppContent(
 
         Location.ARCHIVE -> ArchivePage(
             state = state.archivePageState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
             compact = compact,
             onBack = viewModel::returnToList,
             onDeleteNote = viewModel::deleteNote,

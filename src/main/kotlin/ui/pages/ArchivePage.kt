@@ -60,7 +60,7 @@ fun ArchivePage(
                 ActivePane.LIST -> {
                     NoteList(
                         state.notes,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = modifier,
                         compact = compact,
                         onItemClick = onViewNote
                     )
@@ -68,7 +68,7 @@ fun ArchivePage(
                 ActivePane.VIEW -> {
                     NoteView(
                         note = state.viewedNote!!,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = modifier,
                         compact = compact,
                         onBack = onBack,
                         onToggleArchivedState = { onUnarchiveNote(state.viewedNote) },
@@ -76,7 +76,7 @@ fun ArchivePage(
                 }
             }
         } else {
-            Row(modifier = Modifier.fillMaxSize()) {
+            Row(modifier = modifier) {
                 NoteList(
                     state.notes,
                     modifier = Modifier.fillMaxHeight().fillMaxWidth(0.4f),
