@@ -10,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import data.repository.InMemoryNoteRepository
+import data.repository.NoteRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ui.data.state.AppState
@@ -26,14 +28,15 @@ private data class AppNavigationDestination(
 
 @Composable
 @Preview
-fun App(viewModel: AppViewModel = AppViewModel()) {
+fun App(noteRepository: NoteRepository = InMemoryNoteRepository()) {
+    val appViewModel = remember { AppViewModel(noteRepository) }
     val destinations = listOf(
         AppNavigationDestination(Icons.Outlined.Lightbulb, "Заметки", Location.MAIN),
         AppNavigationDestination(Icons.Outlined.Archive, "Архив", Location.ARCHIVE),
     )
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val state by viewModel.state.collectAsState()
+    val state by appViewModel.state.collectAsState()
 
     AppTheme {
         BoxWithConstraints {
@@ -46,7 +49,7 @@ fun App(viewModel: AppViewModel = AppViewModel()) {
                             destinations.forEach { destination ->
                                 NavigationBarItem(
                                     selected = state.currentLocation == destination.location,
-                                    onClick = { viewModel.navigate(destination.location) },
+                                    onClick = { appViewModel.navigate(destination.location) },
                                     icon = { Icon(destination.icon, destination.label) },
                                     label = { Text(destination.label) },
                                 )
@@ -65,7 +68,7 @@ fun App(viewModel: AppViewModel = AppViewModel()) {
                         scope = scope,
                         snackbarState = snackbarHostState,
                         state = state,
-                        viewModel = viewModel
+                        viewModel = appViewModel
                     )
                 } else {
                     PermanentNavigationDrawer(
@@ -76,7 +79,7 @@ fun App(viewModel: AppViewModel = AppViewModel()) {
                                     NavigationDrawerItem(
                                         label = { Text(destination.label) },
                                         selected = state.currentLocation == destination.location,
-                                        onClick = { viewModel.navigate(destination.location) },
+                                        onClick = { appViewModel.navigate(destination.location) },
                                         icon = { Icon(destination.icon, destination.label) },
                                     )
                                 }
@@ -89,7 +92,7 @@ fun App(viewModel: AppViewModel = AppViewModel()) {
                             scope = scope,
                             snackbarState = snackbarHostState,
                             state = state,
-                            viewModel = viewModel
+                            viewModel = appViewModel
                         )
                     }
                 }
