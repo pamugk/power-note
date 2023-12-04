@@ -15,7 +15,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import entity.Note
-import navigation.ActivePane
+import ui.navigation.ActivePane
 import ui.AppTheme
 import ui.data.state.ArchivePageState
 import ui.data.stub.getExampleArchivedNote
@@ -28,8 +28,10 @@ fun ArchivePage(
     state: ArchivePageState,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
-    onStateChange: (ArchivePageState) -> Unit = {},
+    onBack: () -> Unit = {},
+    onDeleteNote: (Note) -> Unit = {},
     onUnarchiveNote: (Note) -> Unit = {},
+    onViewNote: (Note) -> Unit = {}
 ) {
     if (state.notes.isEmpty()) {
         Column(
@@ -60,12 +62,7 @@ fun ArchivePage(
                         state.notes,
                         modifier = Modifier.fillMaxSize(),
                         compact = compact,
-                        onItemClick = { clickedNote ->
-                            onStateChange(state.copy(
-                                activePane = ActivePane.VIEW,
-                                viewedNote = clickedNote,
-                            ))
-                        }
+                        onItemClick = onViewNote
                     )
                 }
                 ActivePane.VIEW -> {
@@ -73,12 +70,7 @@ fun ArchivePage(
                         note = state.viewedNote!!,
                         modifier = Modifier.fillMaxSize(),
                         compact = compact,
-                        onBack = {
-                            onStateChange(state.copy(
-                                activePane = ActivePane.LIST,
-                                viewedNote = null,
-                            ))
-                        },
+                        onBack = onBack,
                         onToggleArchivedState = { onUnarchiveNote(state.viewedNote) },
                     )
                 }
@@ -89,31 +81,15 @@ fun ArchivePage(
                     state.notes,
                     modifier = Modifier.fillMaxHeight().fillMaxWidth(0.4f),
                     compact = compact,
-                    onItemClick = { clickedNote ->
-                        onStateChange(state.copy(
-                            activePane = ActivePane.VIEW,
-                            viewedNote = clickedNote,
-                        ))
-                    }
+                    onItemClick = onViewNote
                 )
                 if (state.viewedNote != null) {
                     NoteView(
                         note = state.viewedNote,
                         modifier = Modifier.fillMaxSize(),
                         compact = compact,
-                        onBack = {
-                            onStateChange(state.copy(
-                                activePane = ActivePane.LIST,
-                                viewedNote = null,
-                            ))
-                        },
-                        onDelete = {
-                            onStateChange(state.copy(
-                                activePane = ActivePane.LIST,
-                                notes = state.notes - state.viewedNote,
-                                viewedNote = null
-                            ))
-                        },
+                        onBack = onBack,
+                        onDelete = { onDeleteNote(state.viewedNote) },
                         onToggleArchivedState = { onUnarchiveNote(state.viewedNote) },
                     )
                 } else {

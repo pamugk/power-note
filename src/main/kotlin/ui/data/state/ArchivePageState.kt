@@ -1,7 +1,7 @@
 package ui.data.state
 
 import entity.Note
-import navigation.ActivePane
+import ui.navigation.ActivePane
 
 data class ArchivePageState(
     val activePane: ActivePane,

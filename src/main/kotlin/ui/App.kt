@@ -10,17 +10,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import entity.Note
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
-import navigation.ActivePane
-import navigation.Location
-import ui.data.state.ArchivePageState
-import ui.data.state.NotesPageState
+import ui.data.state.AppState
+import ui.navigation.ActivePane
+import ui.navigation.Location
 import ui.pages.ArchivePage
 import ui.pages.NotesPage
-import kotlin.random.Random
+import ui.viewmodel.AppViewModel
 
 private data class AppNavigationDestination(
     val icon: ImageVector,
@@ -30,35 +27,14 @@ private data class AppNavigationDestination(
 
 @Composable
 @Preview
-fun App() {
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
-
+fun App(viewModel: AppViewModel = AppViewModel()) {
     val destinations = listOf(
         AppNavigationDestination(Icons.Outlined.Lightbulb, "Заметки", Location.MAIN),
         AppNavigationDestination(Icons.Outlined.Archive, "Архив", Location.ARCHIVE),
     )
-    var location by remember { mutableStateOf(Location.MAIN) }
-
-    val archiveState = remember {
-        mutableStateOf(
-            ArchivePageState(
-                activePane = ActivePane.LIST,
-                notes = emptyList(),
-                viewedNote = null,
-            )
-        )
-    }
-    val notesState = remember {
-        mutableStateOf(
-            NotesPageState(
-                activePane = ActivePane.LIST,
-                draft = null,
-                notes = emptyList(),
-                viewedNote = null,
-            )
-        )
-    }
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val state by viewModel.state.collectAsState()
 
     AppTheme {
         BoxWithConstraints {
@@ -67,13 +43,13 @@ fun App() {
             Scaffold(
                 bottomBar = {
                     if (compactUi && (
-                            location == Location.MAIN && notesState.value.activePane == ActivePane.LIST
-                                    || location == Location.ARCHIVE && archiveState.value.activePane == ActivePane.LIST)) {
+                                state.currentLocation == Location.MAIN && state.notesPageState.activePane == ActivePane.LIST
+                                    || state.currentLocation == Location.ARCHIVE && state.archivePageState.activePane == ActivePane.LIST)) {
                         NavigationBar {
                             destinations.forEach { destination ->
                                 NavigationBarItem(
-                                    selected = location == destination.location,
-                                    onClick = { location = destination.location },
+                                    selected = state.currentLocation == destination.location,
+                                    onClick = { viewModel.navigate(destination.location) },
                                     icon = { Icon(destination.icon, destination.label) },
                                     label = { Text(destination.label) },
                                 )
@@ -87,12 +63,11 @@ fun App() {
             ) { innerPadding ->
                 if (compactUi) {
                     AppContent(
-                        archiveState = archiveState,
                         compact = compactUi,
-                        location = location,
-                        notesState = notesState,
                         scope = scope,
                         snackbarState = snackbarHostState,
+                        state = state,
+                        viewModel = viewModel
                     )
                 } else {
                     PermanentNavigationDrawer(
@@ -102,8 +77,8 @@ fun App() {
                                 destinations.forEach { destination ->
                                     NavigationDrawerItem(
                                         label = { Text(destination.label) },
-                                        selected = location == destination.location,
-                                        onClick = { location = destination.location },
+                                        selected = state.currentLocation == destination.location,
+                                        onClick = { viewModel.navigate(destination.location) },
                                         icon = { Icon(destination.icon, destination.label) },
                                     )
                                 }
@@ -112,12 +87,11 @@ fun App() {
                         modifier = Modifier.fillMaxHeight().padding(innerPadding),
                     ) {
                         AppContent(
-                            archiveState = archiveState,
                             compact = compactUi,
-                            location = location,
-                            notesState = notesState,
                             scope = scope,
                             snackbarState = snackbarHostState,
+                            state = state,
+                            viewModel = viewModel
                         )
                     }
                 }
@@ -128,31 +102,19 @@ fun App() {
 
 @Composable
 private fun AppContent(
-    archiveState: MutableState<ArchivePageState>,
     compact: Boolean,
-    location: Location,
-    notesState: MutableState<NotesPageState>,
     scope: CoroutineScope,
     snackbarState: SnackbarHostState,
+    state: AppState,
+    viewModel: AppViewModel
 ) {
-    when (location) {
+    when (state.currentLocation) {
         Location.MAIN -> NotesPage(
-            state = notesState.value,
+            state = state.notesPageState,
             modifier = Modifier.fillMaxSize(),
             compact = compact,
             onArchiveNote = { archivedNote ->
-                archivedNote.archivedAt = Clock.System.now()
-
-                notesState.value = notesState.value.copy(
-                    notes = notesState.value.notes - archivedNote,
-                    viewedNote =
-                        if (notesState.value.viewedNote == archivedNote) null
-                        else notesState.value.viewedNote
-                )
-                archiveState.value = archiveState.value.copy(
-                    notes = archiveState.value.notes + archivedNote
-                )
-
+                viewModel.archiveNote(archivedNote)
                 scope.launch {
                     val result = snackbarState
                         .showSnackbar(
@@ -162,77 +124,30 @@ private fun AppContent(
                         )
                     when (result) {
                         SnackbarResult.ActionPerformed -> {
-                            archivedNote.archivedAt = null
-
-                            archiveState.value = archiveState.value.copy(
-                                notes = archiveState.value.notes - archivedNote,
-                                viewedNote =
-                                    if (archiveState.value.viewedNote == archivedNote) null
-                                    else archiveState.value.viewedNote
-                            )
-                            notesState.value = notesState.value.copy(
-                                notes = notesState.value.notes + archivedNote
-                            )
+                            viewModel.unarchiveNote(archivedNote)
                         }
                         SnackbarResult.Dismissed -> {}
                     }
 
                 }
             },
-            onSaveNote = { savedDraft ->
-                val editedNote = if (savedDraft.id == null) null else notesState.value.notes.firstOrNull {
-                    it.id == savedDraft.id
-                }
-
-                if (editedNote == null) {
-                    val createdNote = Note(
-                        id = Random.nextLong(),
-                        createdAt = Clock.System.now(),
-                        archivedAt = null,
-                        header = savedDraft.header,
-                        content = savedDraft.content,
-                    )
-                    notesState.value = notesState.value.copy(
-                        activePane = ActivePane.LIST,
-                        draft = null,
-                        notes = notesState.value.notes + createdNote,
-                        viewedNote = createdNote,
-                    )
-                } else {
-                    val newEditedNoteVersion = editedNote.copy(
-                        lastUpdatedAt = Clock.System.now(),
-                        header = savedDraft.header,
-                        content = savedDraft.content,
-                    )
-                    notesState.value = notesState.value.copy(
-                        activePane = ActivePane.LIST,
-                        draft = null,
-                        notes = notesState.value.notes - editedNote + newEditedNoteVersion,
-                        viewedNote = newEditedNoteVersion,
-                    )
-                }
-            },
-            onStateChange = { notesState.value = it },
+            onBack = viewModel::returnToList,
+            onEdit = viewModel::editNoteDraft,
+            onResetChanges = viewModel::resetChanges,
+            onSaveNote = viewModel::saveNoteDraft,
+            onStartEditing = viewModel::startEditing,
+            onViewNewNoteDraft = viewModel::viewNewNoteDraft,
+            onViewNote = viewModel::viewNote
         )
 
         Location.ARCHIVE -> ArchivePage(
-            state = archiveState.value,
+            state = state.archivePageState,
             modifier = Modifier.fillMaxSize(),
             compact = compact,
-            onStateChange = { archiveState.value = it },
-            onUnarchiveNote = { unarchivedNote ->
-                unarchivedNote.archivedAt = null
-
-                archiveState.value = archiveState.value.copy(
-                    notes = archiveState.value.notes - unarchivedNote,
-                    viewedNote =
-                    if (archiveState.value.viewedNote == unarchivedNote) null
-                    else archiveState.value.viewedNote
-                )
-                notesState.value = notesState.value.copy(
-                    notes = notesState.value.notes + unarchivedNote
-                )
-            }
+            onBack = viewModel::returnToList,
+            onDeleteNote = viewModel::deleteNote,
+            onUnarchiveNote = viewModel::unarchiveNote,
+            onViewNote = viewModel::viewNote
         )
     }
 

@@ -2,7 +2,7 @@ package ui.data.state
 
 import entity.Note
 import entity.NoteDraft
-import navigation.ActivePane
+import ui.navigation.ActivePane
 
 data class NotesPageState(
     val activePane: ActivePane,

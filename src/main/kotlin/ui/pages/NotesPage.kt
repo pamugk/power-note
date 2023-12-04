@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import entity.Note
 import entity.NoteDraft
-import navigation.ActivePane
+import ui.navigation.ActivePane
 import ui.AppTheme
 import ui.data.state.NotesPageState
 import ui.data.stub.getExampleNewNote
@@ -36,8 +36,13 @@ fun NotesPage(
     modifier: Modifier = Modifier,
     compact: Boolean = false,
     onArchiveNote: (Note) -> Unit = {},
+    onBack: () -> Unit = {},
+    onEdit: (NoteDraft) -> Unit = {},
+    onResetChanges: () -> Unit = {},
     onSaveNote: (NoteDraft) -> Unit = {},
-    onStateChange: (NotesPageState) -> Unit = {},
+    onStartEditing: (Note?) -> Unit = {},
+    onViewNewNoteDraft: () -> Unit = {},
+    onViewNote: (Note) -> Unit = {}
 ) {
     if (state.notes.isEmpty() && state.draft == null) {
         Scaffold(
@@ -47,12 +52,7 @@ fun NotesPage(
                     tooltip = "Добавить заметку"
                 ) {
                     FloatingActionButton(
-                        onClick = {
-                            onStateChange(state.copy(
-                                activePane = ActivePane.VIEW,
-                                draft = NoteDraft(header = "", content = "")
-                            ))
-                        },
+                        onClick = { onStartEditing(null) },
                     ) {
                         Icon(Icons.Default.Add, "Добавить заметку")
                     }
@@ -90,25 +90,9 @@ fun NotesPage(
                         compact = compact,
                         allowedCreateNew = true,
                         draft = state.draft,
-                        onCreateNew = {
-                            onStateChange(state.copy(
-                                activePane = ActivePane.VIEW,
-                                draft = NoteDraft(header = "", content = ""),
-                                viewedNote = null
-                            ))
-                        },
-                        onDraftClick = {
-                            onStateChange(state.copy(
-                                activePane = ActivePane.VIEW,
-                                viewedNote = null
-                            ))
-                        },
-                        onItemClick = { clickedNote ->
-                            onStateChange(state.copy(
-                                activePane = ActivePane.VIEW,
-                                viewedNote = clickedNote
-                            ))
-                        }
+                        onCreateNew = { onStartEditing(null) },
+                        onDraftClick = onViewNewNoteDraft,
+                        onItemClick = onViewNote
                     )
                 }
                 ActivePane.VIEW -> {
@@ -117,21 +101,9 @@ fun NotesPage(
                             noteDraft = state.draft,
                             modifier = Modifier.fillMaxSize(),
                             compact = compact,
-                            onBack = {
-                                onStateChange(state.copy(
-                                    activePane = ActivePane.LIST,
-                                    viewedNote = null,
-                                ))
-                            },
-                            onResetChanges = {
-                                onStateChange(state.copy(
-                                    activePane = ActivePane.LIST,
-                                    draft = null,
-                                ))
-                            },
-                            onEdit = {
-                                onStateChange(state.copy(draft = it))
-                            },
+                            onBack = onBack,
+                            onResetChanges = onResetChanges,
+                            onEdit = onEdit,
                             onSave = { onSaveNote(state.draft) },
                         )
                     } else if (state.viewedNote != null) {
@@ -140,21 +112,8 @@ fun NotesPage(
                             modifier = Modifier.fillMaxSize(),
                             compact = compact,
                             editInProcess = state.draft != null,
-                            onBack = {
-                                onStateChange(state.copy(
-                                    activePane = ActivePane.LIST,
-                                    viewedNote = null,
-                                ))
-                            },
-                            onStartEditing = {
-                                onStateChange(state.copy(
-                                    draft = NoteDraft(
-                                        id = state.viewedNote.id,
-                                        header = state.viewedNote.header,
-                                        content = state.viewedNote.content,
-                                    )
-                                ))
-                            },
+                            onBack = onBack,
+                            onStartEditing = { onStartEditing(state.viewedNote) },
                             onToggleArchivedState = { onArchiveNote(state.viewedNote) },
                         )
                     }
@@ -168,46 +127,18 @@ fun NotesPage(
                     compact = compact,
                     allowedCreateNew = true,
                     draft = state.draft,
-                    onCreateNew = {
-                        onStateChange(state.copy(
-                            activePane = ActivePane.VIEW,
-                            draft = NoteDraft(header = "", content = ""),
-                            viewedNote = null,
-                        ))
-                    },
-                    onDraftClick = {
-                        onStateChange(state.copy(
-                            activePane = ActivePane.VIEW,
-                            viewedNote = null
-                        ))
-                    },
-                    onItemClick = { clickedNote ->
-                        onStateChange(state.copy(
-                            activePane = ActivePane.VIEW,
-                            viewedNote = clickedNote,
-                        ))
-                    }
+                    onCreateNew = { onStartEditing(null) },
+                    onDraftClick = onViewNewNoteDraft,
+                    onItemClick = onViewNote
                 )
                 if (state.draft != null && state.viewedNote?.id == state.draft.id) {
                     NoteEditor(
                         noteDraft = state.draft,
                         modifier = Modifier.fillMaxSize(),
                         compact = compact,
-                        onBack = {
-                            onStateChange(state.copy(
-                                activePane = ActivePane.LIST,
-                                viewedNote = null,
-                            ))
-                        },
-                        onResetChanges = {
-                            onStateChange(state.copy(
-                                activePane = ActivePane.LIST,
-                                draft = null,
-                            ))
-                        },
-                        onEdit = {
-                            onStateChange(state.copy(draft = it))
-                        },
+                        onBack = onBack,
+                        onResetChanges = onResetChanges,
+                        onEdit = onEdit,
                         onSave = { onSaveNote(state.draft) },
                     )
                 } else if (state.viewedNote != null) {
@@ -216,21 +147,8 @@ fun NotesPage(
                         modifier = Modifier.fillMaxSize(),
                         compact = compact,
                         editInProcess = state.draft != null,
-                        onBack = {
-                            onStateChange(state.copy(
-                                activePane = ActivePane.LIST,
-                                viewedNote = null,
-                            ))
-                        },
-                        onStartEditing = {
-                            onStateChange(state.copy(
-                                draft = NoteDraft(
-                                    id = state.viewedNote.id,
-                                    header = state.viewedNote.header,
-                                    content = state.viewedNote.content,
-                                )
-                            ))
-                        },
+                        onBack = onBack,
+                        onStartEditing = { onStartEditing(state.viewedNote) },
                         onToggleArchivedState = { onArchiveNote(state.viewedNote) },
                     )
                 } else {

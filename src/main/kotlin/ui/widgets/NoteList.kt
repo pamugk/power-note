@@ -33,7 +33,6 @@ fun NoteList(
     onItemClick: (Note) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
-    val preparedList = notes.sortedByDescending { it.createdAt }
 
     Scaffold(
         modifier = modifier,
@@ -74,7 +73,7 @@ fun NoteList(
                         .padding(end = if (compact) 0.dp else 12.dp),
                     state = listState
                 ) {
-                    items(preparedList) { note ->
+                    items(notes) { note ->
                         NoteListItem(
                             note = note,
                             modifier = Modifier.clickable { onItemClick(note) },

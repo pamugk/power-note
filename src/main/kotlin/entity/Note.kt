@@ -9,7 +9,7 @@ data class Note(
     val id: Long,
     val createdAt: Instant,
     val lastUpdatedAt: Instant = createdAt,
-    var archivedAt: Instant?,
+    val archivedAt: Instant? = null,
     // Содержимое
     val header: String,
     val content: String,
