@@ -44,7 +44,7 @@ compose.desktop {
             packageVersion = "1.0.0"
 
             linux {
-                iconFile = file("src/main/resources/icon_main.svg")
+                iconFile = file("src/main/resources/icon_main.png")
             }
             windows {
                 iconFile = file("src/main/resources/icon_main.ico")
