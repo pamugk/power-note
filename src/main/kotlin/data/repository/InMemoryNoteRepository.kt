@@ -9,6 +9,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import java.util.concurrent.atomic.AtomicLong
 
 class InMemoryNoteRepository: NoteRepository {
@@ -41,6 +42,14 @@ class InMemoryNoteRepository: NoteRepository {
     }
 
     override fun getNotes(): StateFlow<DatasetState> = processedNotes
+
+    override suspend fun runCleanup(threshold: Instant) {
+        withContext(Dispatchers.IO) {
+            notes.update { oldNotes ->
+                oldNotes.filterValues { it.archivedAt == null || it.archivedAt > threshold }
+            }
+        }
+    }
 
     override suspend fun saveDraft(savedDraft: NoteDraft) {
         withContext(Dispatchers.IO) {

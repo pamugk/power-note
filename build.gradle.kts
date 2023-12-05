@@ -22,11 +22,11 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.materialIconsExtended)
     implementation(compose.material3)
+    implementation("ch.qos.logback:logback-classic:1.4.14")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
-    implementation("org.slf4j:slf4j-nop:2.0.9")
     implementation("org.xerial:sqlite-jdbc:3.44.1.0")
 }
 

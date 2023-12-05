@@ -5,13 +5,18 @@ import entity.Note
 import entity.NoteDraft
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import ui.data.state.AppState
 import ui.data.state.ArchivePageState
 import ui.data.state.NotesPageState
 import ui.navigation.ActivePane
 import ui.navigation.Location
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class AppViewModel(private val noteRepository: NoteRepository) {
 
@@ -57,6 +62,15 @@ class AppViewModel(private val noteRepository: NoteRepository) {
                         viewedNote = if (viewedNoteFound) oldState.notesPageState.viewedNote else null
                     )
                 )
+            }
+        }.launchIn(coroutineScope)
+
+        flow {
+            delay(1.seconds)
+            while (true) {
+                noteRepository.runCleanup(Clock.System.now() - 7.days)
+                emit(Unit)
+                delay(5.minutes)
             }
         }.launchIn(coroutineScope)
     }

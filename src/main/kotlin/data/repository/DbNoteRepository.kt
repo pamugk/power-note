@@ -9,8 +9,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNotNull
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.sql.Connection
 
@@ -32,8 +35,10 @@ class DbNoteRepository: NoteRepository {
     private val notes = MutableStateFlow(DatasetState(emptyList(), emptyList()))
 
     override suspend fun archiveNote(archivedNoteId: Long) {
-        newSuspendedTransaction(Dispatchers.IO, db = db, transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
-            addLogger(StdOutSqlLogger)
+        newSuspendedTransaction(
+            Dispatchers.IO, db = db,
+            transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
+            addLogger(Slf4jSqlDebugLogger)
 
             val operationTime = Clock.System.now()
             NoteTable.update({ NoteTable.id eq archivedNoteId }) {
@@ -44,8 +49,10 @@ class DbNoteRepository: NoteRepository {
     }
 
     override suspend fun deleteNote(deletedNoteId: Long) {
-        newSuspendedTransaction(Dispatchers.IO, db = db, transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
-            addLogger(StdOutSqlLogger)
+        newSuspendedTransaction(
+            Dispatchers.IO, db = db,
+            transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
+            addLogger(Slf4jSqlDebugLogger)
 
             NoteTable.deleteWhere { NoteTable.id eq deletedNoteId }
         }
@@ -56,7 +63,7 @@ class DbNoteRepository: NoteRepository {
         val notesState = newSuspendedTransaction(
             Dispatchers.IO, db = db,
             transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
-            addLogger(StdOutSqlLogger)
+            addLogger(Slf4jSqlDebugLogger)
 
             val archivedNotes = NoteTable
                 .select { NoteTable.archivedAt.isNotNull() }
@@ -74,17 +81,34 @@ class DbNoteRepository: NoteRepository {
     override fun getNotes(): StateFlow<DatasetState> = notes
 
     suspend fun initialize() {
-        newSuspendedTransaction(Dispatchers.IO, db = db, transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
-            addLogger(StdOutSqlLogger)
+        newSuspendedTransaction(
+            Dispatchers.IO, db = db,
+            transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
+            addLogger(Slf4jSqlDebugLogger)
 
             SchemaUtils.create(NoteTable)
         }
         fetchNotes()
     }
 
+    override suspend fun runCleanup(threshold: Instant) {
+        val deletedCount = newSuspendedTransaction(
+            Dispatchers.IO, db = db,
+            transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
+            addLogger(Slf4jSqlDebugLogger)
+
+            NoteTable.deleteWhere { archivedAt.isNotNull().and( archivedAt lessEq threshold) }
+        }
+        if (deletedCount > 0) {
+            fetchNotes()
+        }
+    }
+
     override suspend fun saveDraft(savedDraft: NoteDraft) {
-        newSuspendedTransaction(Dispatchers.IO, db = db, transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
-            addLogger(StdOutSqlLogger)
+        newSuspendedTransaction(
+            Dispatchers.IO, db = db,
+            transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
+            addLogger(Slf4jSqlDebugLogger)
 
             val operationTime = Clock.System.now()
             if (savedDraft.id == null) {
@@ -106,8 +130,10 @@ class DbNoteRepository: NoteRepository {
     }
 
     override suspend fun unarchiveNote(unarchivedNoteId: Long) {
-        newSuspendedTransaction(Dispatchers.IO, db = db, transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
-            addLogger(StdOutSqlLogger)
+        newSuspendedTransaction(
+            Dispatchers.IO, db = db,
+            transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
+            addLogger(Slf4jSqlDebugLogger)
 
             NoteTable.update({ NoteTable.id eq unarchivedNoteId }) {
                 it[archivedAt] = null

@@ -94,15 +94,6 @@ fun NoteView(
                                 Icon(Icons.Default.Unarchive, "Вернуть из архива")
                             }
                         }
-                        Tooltip(tooltip = "Удалить") {
-                            IconButton(
-                                onClick = {
-                                    shownDialog = ShownDialogOnView.DELETE
-                                }
-                            ) {
-                                Icon(Icons.Default.Delete, "Удалить")
-                            }
-                        }
                     } else {
                         Tooltip(tooltip = "Архивировать") {
                             IconButton(
