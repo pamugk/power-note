@@ -133,23 +133,23 @@ private fun AppContent(
 
                 }
             },
-            onBack = viewModel::returnToList,
-            onEdit = viewModel::editNoteDraft,
-            onResetChanges = viewModel::resetChanges,
-            onSaveNote = viewModel::saveNoteDraft,
-            onStartEditing = viewModel::startEditing,
-            onViewNewNoteDraft = viewModel::viewNewNoteDraft,
-            onViewNote = viewModel::viewNote
+            onBack = { viewModel.returnToList() },
+            onEdit = { viewModel.editNoteDraft(it) },
+            onResetChanges = { viewModel.resetChanges() },
+            onSaveNote = { viewModel.saveNoteDraft(it) },
+            onStartEditing = { viewModel.startEditing(it) },
+            onViewNewNoteDraft = { viewModel.viewNewNoteDraft() },
+            onViewNote = { viewModel.viewNote(it) }
         )
 
         Location.ARCHIVE -> ArchivePage(
             state = state.archivePageState,
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             compact = compact,
-            onBack = viewModel::returnToList,
-            onDeleteNote = viewModel::deleteNote,
-            onUnarchiveNote = viewModel::unarchiveNote,
-            onViewNote = viewModel::viewNote
+            onBack = { viewModel.returnToList() },
+            onDeleteNote = { viewModel.deleteNote(it) },
+            onUnarchiveNote = { viewModel.unarchiveNote(it) },
+            onViewNote = { viewModel.viewNote(it) }
         )
     }
 

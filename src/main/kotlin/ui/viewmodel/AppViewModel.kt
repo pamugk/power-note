@@ -39,21 +39,21 @@ class AppViewModel(private val noteRepository: NoteRepository) {
             _state.update { oldState ->
                 val creatingNote = oldState.notesPageState.draft != null && oldState.notesPageState.draft.id == null
                 val draftFound = oldState.notesPageState.draft?.id?.let { draftId ->
-                    notesData.second.any { it.id == draftId }
+                    notesData.notes.any { it.id == draftId }
                 } == true
-                val viewedArchivedNoteFound = oldState.archivePageState.viewedNote?.let { notesData.first.contains(it) } == true
-                val viewedNoteFound = oldState.notesPageState.viewedNote?.let { notesData.second.contains(it) } == true
+                val viewedArchivedNoteFound = oldState.archivePageState.viewedNote?.let { notesData.archivedNotes.contains(it) } == true
+                val viewedNoteFound = oldState.notesPageState.viewedNote?.let { notesData.notes.contains(it) } == true
 
                 oldState.copy(
                     archivePageState = oldState.archivePageState.copy(
                         activePane = if (viewedArchivedNoteFound) ActivePane.VIEW else ActivePane.LIST,
-                        notes = notesData.first,
+                        notes = notesData.archivedNotes,
                         viewedNote = if (viewedArchivedNoteFound) oldState.archivePageState.viewedNote else null
                     ),
                     notesPageState = oldState.notesPageState.copy(
                         activePane = if (viewedNoteFound || creatingNote) oldState.notesPageState.activePane else ActivePane.LIST,
                         draft = if (draftFound || creatingNote) oldState.notesPageState.draft else null,
-                        notes = notesData.second,
+                        notes = notesData.notes,
                         viewedNote = if (viewedNoteFound) oldState.notesPageState.viewedNote else null
                     )
                 )

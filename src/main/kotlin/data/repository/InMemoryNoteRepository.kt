@@ -1,5 +1,6 @@
 package data.repository
 
+import data.state.DatasetState
 import entity.Note
 import entity.NoteDraft
 import kotlinx.coroutines.CoroutineScope
@@ -17,8 +18,9 @@ class InMemoryNoteRepository: NoteRepository {
     private val notes = MutableStateFlow<Map<Long, Note>>(emptyMap())
     @OptIn(ExperimentalCoroutinesApi::class)
     private val processedNotes = notes.mapLatest { allNotes ->
-        allNotes.values.sortedByDescending { it.createdAt }.partition { it.archived }
-    }.stateIn(coroutineScope, SharingStarted.Eagerly, Pair(emptyList(), emptyList()))
+        val (archivedNotes, notes) = allNotes.values.sortedByDescending { it.createdAt }.partition { it.archived }
+        DatasetState(archivedNotes, notes)
+    }.stateIn(coroutineScope, SharingStarted.Eagerly, DatasetState(emptyList(), emptyList()))
 
     override suspend fun archiveNote(archivedNoteId: Long) {
         withContext(Dispatchers.IO) {
@@ -38,7 +40,7 @@ class InMemoryNoteRepository: NoteRepository {
         }
     }
 
-    override fun getNotes(): StateFlow<Pair<List<Note>, List<Note>>> = processedNotes
+    override fun getNotes(): StateFlow<DatasetState> = processedNotes
 
     override suspend fun saveDraft(savedDraft: NoteDraft) {
         withContext(Dispatchers.IO) {

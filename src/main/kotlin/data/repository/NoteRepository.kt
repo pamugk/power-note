@@ -1,6 +1,6 @@
 package data.repository
 
-import entity.Note
+import data.state.DatasetState
 import entity.NoteDraft
 import kotlinx.coroutines.flow.StateFlow
 
@@ -9,7 +9,7 @@ interface NoteRepository {
 
     suspend fun deleteNote(deletedNoteId: Long)
 
-    fun getNotes(): StateFlow<Pair<List<Note>, List<Note>>>
+    fun getNotes(): StateFlow<DatasetState>
 
     suspend fun saveDraft(savedDraft: NoteDraft)
 
