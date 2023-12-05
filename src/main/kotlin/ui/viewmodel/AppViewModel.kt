@@ -13,114 +13,73 @@ import ui.data.state.NotesPageState
 import ui.navigation.ActivePane
 import ui.navigation.Location
 
-private data class AppUiState(
-    val archivePageUiState: ArchivePageUiState,
-    val currentLocation: Location,
-    val notesPageUiState: NotesPageUiState
-)
-
-private data class ArchivePageUiState(
-    val activePane: ActivePane,
-    val lastViewedNote: Note?
-)
-
-private data class NotesPageUiState(
-    val activePane: ActivePane,
-    val draft: NoteDraft?,
-    val lastViewedNote: Note?
-)
-
-private fun <T1, T2, R> combineState(
-    flow1: StateFlow<T1>,
-    flow2: StateFlow<T2>,
-    scope: CoroutineScope,
-    sharingStarted: SharingStarted,
-    transform: (T1, T2) -> R
-): StateFlow<R> =
-    combine(flow1, flow2) { o1, o2 -> transform.invoke(o1, o2) }
-        .stateIn(scope, sharingStarted, transform.invoke(flow1.value, flow2.value))
-
 class AppViewModel(private val noteRepository: NoteRepository) {
 
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
 
     private val _state = MutableStateFlow(
-        AppUiState(
-            archivePageUiState = ArchivePageUiState(
+        AppState(
+            archivePageState = ArchivePageState(
                 activePane = ActivePane.LIST,
-                lastViewedNote = null
+                notes = emptyList(),
+                viewedNote = null
             ),
             currentLocation = Location.MAIN,
-            notesPageUiState = NotesPageUiState(
+            notesPageState = NotesPageState(
                 activePane = ActivePane.LIST,
                 draft = null,
-                lastViewedNote = null
+                notes = emptyList(),
+                viewedNote = null
             )
         )
     )
-    private val _combinedState = combineState(
-        _state, noteRepository.getNotes(),
-        coroutineScope, SharingStarted.Eagerly
-    ) { appUiState, notesData ->
-        val creatingNote = appUiState.notesPageUiState.draft != null && appUiState.notesPageUiState.draft.id == null
-        val draftFound = appUiState.notesPageUiState.draft?.id?.let { draftId ->
-            notesData.first.any { it.id == draftId } || notesData.second.any { it.id == draftId }
-        } == true
-        val viewedArchivedNoteFound = appUiState.archivePageUiState.lastViewedNote?.let { notesData.first.contains(it) } == true
-        val viewedNoteFound = appUiState.notesPageUiState.lastViewedNote?.let { notesData.second.contains(it) } == true
 
-        AppState(
-            archivePageState = ArchivePageState(
-                activePane = if (viewedArchivedNoteFound) ActivePane.VIEW else ActivePane.LIST,
-                notes = notesData.first,
-                viewedNote = if (viewedArchivedNoteFound) appUiState.archivePageUiState.lastViewedNote else null
-            ),
-            currentLocation = appUiState.currentLocation,
-            notesPageState = NotesPageState(
-                activePane = if (viewedNoteFound || creatingNote) appUiState.notesPageUiState.activePane else ActivePane.LIST,
-                draft = if (draftFound || creatingNote) appUiState.notesPageUiState.draft else null,
-                notes = notesData.second,
-                viewedNote = if (viewedNoteFound) appUiState.notesPageUiState.lastViewedNote else null
-            )
-        )
-    }
-
-    val state: StateFlow<AppState>
-        get() = _combinedState
-
-    fun archiveNote(archivedNote: Note) {
-        coroutineScope.launch {
-            noteRepository.archiveNote(archivedNote)
+    init {
+        noteRepository.getNotes().onEach { notesData ->
             _state.update { oldState ->
+                val creatingNote = oldState.notesPageState.draft != null && oldState.notesPageState.draft.id == null
+                val draftFound = oldState.notesPageState.draft?.id?.let { draftId ->
+                    notesData.second.any { it.id == draftId }
+                } == true
+                val viewedArchivedNoteFound = oldState.archivePageState.viewedNote?.let { notesData.first.contains(it) } == true
+                val viewedNoteFound = oldState.notesPageState.viewedNote?.let { notesData.second.contains(it) } == true
+
                 oldState.copy(
-                    notesPageUiState = NotesPageUiState(
-                        activePane = ActivePane.LIST,
-                        draft = null,
-                        lastViewedNote = null
+                    archivePageState = oldState.archivePageState.copy(
+                        activePane = if (viewedArchivedNoteFound) ActivePane.VIEW else ActivePane.LIST,
+                        notes = notesData.first,
+                        viewedNote = if (viewedArchivedNoteFound) oldState.archivePageState.viewedNote else null
+                    ),
+                    notesPageState = oldState.notesPageState.copy(
+                        activePane = if (viewedNoteFound || creatingNote) oldState.notesPageState.activePane else ActivePane.LIST,
+                        draft = if (draftFound || creatingNote) oldState.notesPageState.draft else null,
+                        notes = notesData.second,
+                        viewedNote = if (viewedNoteFound) oldState.notesPageState.viewedNote else null
                     )
                 )
             }
+        }.launchIn(coroutineScope)
+    }
+
+    val state: StateFlow<AppState>
+        get() = _state
+
+    fun archiveNote(archivedNote: Note) {
+        coroutineScope.launch {
+            noteRepository.archiveNote(archivedNote.id)
         }
     }
 
     fun deleteNote(deletedNote: Note) {
         coroutineScope.launch {
-            noteRepository.deleteNote(deletedNote)
-            _state.update { oldState ->
-                oldState.copy(
-                    archivePageUiState = ArchivePageUiState(
-                        activePane = ActivePane.LIST,
-                        lastViewedNote = null
-                    )
-                )
-            }
+            noteRepository.deleteNote(deletedNote.id)
         }
     }
 
     fun editNoteDraft(editedDraft: NoteDraft) {
         _state.update { oldState ->
             oldState.copy(
-                notesPageUiState = oldState.notesPageUiState.copy(
+                notesPageState = oldState.notesPageState.copy(
                     draft = editedDraft
                 )
             )
@@ -137,9 +96,9 @@ class AppViewModel(private val noteRepository: NoteRepository) {
 
     fun resetChanges() {
         _state.update { oldState ->
-            val resetCreation = oldState.notesPageUiState.draft?.id == null
+            val resetCreation = oldState.notesPageState.draft?.id == null
             oldState.copy(
-                notesPageUiState = oldState.notesPageUiState.copy(
+                notesPageState = oldState.notesPageState.copy(
                     activePane = if (resetCreation) ActivePane.LIST else ActivePane.VIEW,
                     draft = null,
                 )
@@ -151,15 +110,15 @@ class AppViewModel(private val noteRepository: NoteRepository) {
         _state.update { oldState ->
             when (oldState.currentLocation) {
                 Location.MAIN -> oldState.copy(
-                    notesPageUiState = oldState.notesPageUiState.copy(
+                    notesPageState = oldState.notesPageState.copy(
                         activePane = ActivePane.LIST,
-                        lastViewedNote = null
+                        viewedNote = null
                     )
                 )
                 Location.ARCHIVE -> oldState.copy(
-                    archivePageUiState = oldState.archivePageUiState.copy(
+                    archivePageState = oldState.archivePageState.copy(
                         activePane = ActivePane.LIST,
-                        lastViewedNote = null
+                        viewedNote = null
                     )
                 )
             }
@@ -171,10 +130,10 @@ class AppViewModel(private val noteRepository: NoteRepository) {
             noteRepository.saveDraft(draft)
             _state.update { oldState ->
                 oldState.copy(
-                    notesPageUiState = NotesPageUiState(
+                    notesPageState = oldState.notesPageState.copy(
                         activePane = ActivePane.LIST,
                         draft = null,
-                        lastViewedNote = null
+                        viewedNote = null
                     )
                 )
             }
@@ -184,13 +143,13 @@ class AppViewModel(private val noteRepository: NoteRepository) {
     fun startEditing(editedNote: Note?) {
         _state.update { oldState ->
             oldState.copy(
-                notesPageUiState = oldState.notesPageUiState.copy(
+                notesPageState = oldState.notesPageState.copy(
                     activePane = ActivePane.VIEW,
                     draft =
                         if (editedNote == null)
                             NoteDraft(header = "", content = "")
                         else NoteDraft(id = editedNote.id, header = editedNote.header, content = editedNote.content),
-                    lastViewedNote = editedNote
+                    viewedNote = editedNote
                 )
             )
         }
@@ -198,16 +157,16 @@ class AppViewModel(private val noteRepository: NoteRepository) {
 
     fun unarchiveNote(unarchivedNote: Note) {
         coroutineScope.launch {
-            noteRepository.unarchiveNote(unarchivedNote)
+            noteRepository.unarchiveNote(unarchivedNote.id)
         }
     }
 
     fun viewNewNoteDraft() {
         _state.update { oldState ->
             oldState.copy(
-                notesPageUiState = oldState.notesPageUiState.copy(
+                notesPageState = oldState.notesPageState.copy(
                     activePane = ActivePane.VIEW,
-                    lastViewedNote = null
+                    viewedNote = null
                 )
             )
         }
@@ -217,15 +176,15 @@ class AppViewModel(private val noteRepository: NoteRepository) {
         _state.update { oldState ->
             when(oldState.currentLocation) {
                 Location.MAIN -> oldState.copy(
-                    notesPageUiState = oldState.notesPageUiState.copy(
+                    notesPageState = oldState.notesPageState.copy(
                         activePane = ActivePane.VIEW,
-                        lastViewedNote = newViewedNote
+                        viewedNote = newViewedNote
                     )
                 )
                 Location.ARCHIVE -> oldState.copy(
-                    archivePageUiState = oldState.archivePageUiState.copy(
+                    archivePageState = oldState.archivePageState.copy(
                         activePane = ActivePane.VIEW,
-                        lastViewedNote = newViewedNote
+                        viewedNote = newViewedNote
                     )
                 )
             }

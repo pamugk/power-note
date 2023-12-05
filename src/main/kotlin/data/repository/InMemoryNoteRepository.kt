@@ -10,38 +10,30 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import java.util.concurrent.atomic.AtomicLong
 
-private infix fun <T> List<T>.prepend(e: T): List<T> {
-    return buildList(this.size + 1) {
-        add(e)
-        addAll(this@prepend)
-    }
-}
-
 class InMemoryNoteRepository: NoteRepository {
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private var lastUsedId = AtomicLong(0L)
-    private val notes = MutableStateFlow<List<Note>>(emptyList())
+    private val notes = MutableStateFlow<Map<Long, Note>>(emptyMap())
     @OptIn(ExperimentalCoroutinesApi::class)
     private val processedNotes = notes.mapLatest { allNotes ->
-        allNotes.sortedByDescending { it.createdAt }.partition { it.archived }
+        allNotes.values.sortedByDescending { it.createdAt }.partition { it.archived }
     }.stateIn(coroutineScope, SharingStarted.Eagerly, Pair(emptyList(), emptyList()))
 
-    override suspend fun archiveNote(archivedNote: Note) {
+    override suspend fun archiveNote(archivedNoteId: Long) {
         withContext(Dispatchers.IO) {
-            val newArchivedNote = archivedNote.copy(archivedAt = Clock.System.now())
             notes.update { oldNotes ->
-                if (oldNotes.any { it.id == archivedNote.id })
-                    (oldNotes.filterNot { it.id == archivedNote.id } + newArchivedNote)
-                else oldNotes
+                oldNotes[archivedNoteId]?.let { oldArchivedNote ->
+                    oldNotes - archivedNoteId + Pair(archivedNoteId, oldArchivedNote.copy(archivedAt = Clock.System.now()))
+                } ?: oldNotes
             }
         }
     }
 
-    override suspend fun deleteNote(deletedNote: Note) {
+    override suspend fun deleteNote(deletedNoteId: Long) {
         withContext(Dispatchers.IO) {
             notes.update { oldNotes ->
-                oldNotes.filterNot { it.id == deletedNote.id }
+                oldNotes - deletedNoteId
             }
         }
     }
@@ -58,29 +50,27 @@ class InMemoryNoteRepository: NoteRepository {
                         header = savedDraft.header,
                         content = savedDraft.content
                     )
-                    oldNotes prepend newNoteState
+                    oldNotes + Pair(newNoteState.id, newNoteState)
                 }
                 else {
-                    oldNotes.find { it.id == savedDraft.id }?.let { oldEditedNote ->
-                        val newEditedNote = oldEditedNote.copy(
+                    oldNotes[savedDraft.id]?.let { oldEditedNote ->
+                        oldNotes - savedDraft.id + Pair(savedDraft.id, oldEditedNote.copy(
                             lastUpdatedAt = Clock.System.now(),
                             header = savedDraft.header,
                             content = savedDraft.content
-                        )
-                        (oldNotes.filterNot { it.id == savedDraft.id } + newEditedNote)
+                        ))
                     } ?: oldNotes
                 }
             }
         }
     }
 
-    override suspend fun unarchiveNote(unarchivedNote: Note) {
+    override suspend fun unarchiveNote(unarchivedNoteId: Long) {
         withContext (Dispatchers.IO) {
-            val newUnarchivedNote = unarchivedNote.copy(archivedAt = null)
             notes.update { oldNotes ->
-                if (oldNotes.any { it.id == unarchivedNote.id })
-                    (oldNotes.filterNot { it.id == unarchivedNote.id } + newUnarchivedNote)
-                else oldNotes
+                oldNotes[unarchivedNoteId]?.let { oldUnarchivedNote ->
+                    oldNotes - unarchivedNoteId + Pair(unarchivedNoteId, oldUnarchivedNote.copy(archivedAt = null))
+                } ?: oldNotes
             }
         }
     }
