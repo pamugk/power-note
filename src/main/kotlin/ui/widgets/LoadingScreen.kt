@@ -9,14 +9,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import ui.widgets.AppTheme
+import ui.AppTheme
 
 @Composable
 fun LoadingScreen(modifier: Modifier = Modifier) {
     Surface {
         Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator(modifier = Modifier.width(64.dp))
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(48.dp))
             Text("Пожалуйста, подождите…")
         }
     }}

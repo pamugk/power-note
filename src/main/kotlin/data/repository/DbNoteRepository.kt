@@ -26,7 +26,6 @@ private fun mapNoteRow(row: ResultRow) =
 
 class DbNoteRepository: NoteRepository {
     private val db by lazy {
-
         Database.connect("jdbc:sqlite:${getDataPath()}data.db", "org.sqlite.JDBC")
     }
 

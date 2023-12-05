@@ -6,7 +6,8 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import data.repository.DbNoteRepository
 import ui.App
-import ui.SplashScreen
+import ui.widgets.LoadingScreen
+import ui.AppTheme
 import java.awt.Dimension
 
 fun main() = application {
@@ -30,7 +31,9 @@ fun main() = application {
         if (repositoryInitialized) {
             App(repository)
         } else {
-            SplashScreen(Modifier.fillMaxSize())
+            AppTheme {
+                LoadingScreen(Modifier.fillMaxSize())
+            }
         }
     }
 }
