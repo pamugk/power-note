@@ -48,6 +48,7 @@ compose.desktop {
             packageName = "power-note"
             packageVersion = "1.0.0"
 
+            modules("java.sql")
             linux {
                 iconFile = file("src/main/resources/icon_main.png")
             }
