@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import entity.NoteDraft
 import ui.AppTheme
@@ -23,6 +24,13 @@ private enum class ShownDialogOnEdit {
     NONE,
     UNSAVED_CHANGES,
 }
+
+private const val MAX_CONTENT_LENGTH = 20000
+private const val MAX_HEADER_LENGTH = 1000
+
+private fun draftIsValid(noteDraft: NoteDraft) =
+    noteDraft.content.isNotEmpty() && noteDraft.content.length <= MAX_CONTENT_LENGTH
+            && noteDraft.header.isNotEmpty() && noteDraft.header.length <= MAX_HEADER_LENGTH
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +71,14 @@ fun NoteEditor(
                         onValueChange = { onEdit(noteDraft.copy(header = it)) },
                         modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
                         label = { Text("Заголовок") },
+                        supportingText = {
+                            Text(
+                                text = "${noteDraft.header.length} / $MAX_HEADER_LENGTH",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.End,
+                            )
+                        },
+                        isError = noteDraft.header.length > MAX_HEADER_LENGTH,
                         singleLine = true,
                     )
                 },
@@ -92,7 +108,7 @@ fun NoteEditor(
             BottomAppBar(
                 actions = {},
                 floatingActionButton = {
-                    if (noteDraft.header.isNotEmpty() && noteDraft.content.isNotEmpty()) {
+                    if (draftIsValid(noteDraft)) {
                         Tooltip(tooltip = "Сохранить") {
                             FloatingActionButton(
                                 onClick = onSave,
@@ -109,11 +125,19 @@ fun NoteEditor(
             TextField(
                 value = noteDraft.content,
                 onValueChange = { onEdit(noteDraft.copy(content = it)) },
-                label = { Text("Содержимое") },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp)
-                    .verticalScroll(textScrollState)
+                    .verticalScroll(textScrollState),
+                label = { Text("Содержимое") },
+                supportingText = {
+                    Text(
+                        text = "${noteDraft.content.length} / $MAX_CONTENT_LENGTH",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.End,
+                    )
+                },
+                isError = noteDraft.content.length > MAX_CONTENT_LENGTH
             )
             if (!compact) {
                 VerticalScrollbar(
