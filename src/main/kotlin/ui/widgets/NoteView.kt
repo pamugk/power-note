@@ -79,11 +79,9 @@ fun NoteView(
                     )
                 },
                 navigationIcon = {
-                    if (compact) {
-                        Tooltip(tooltip = "Назад") {
-                            IconButton(onClick = onBack) {
-                                Icon(Icons.Default.ArrowBack, "Назад")
-                            }
+                    Tooltip(tooltip = "Назад") {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Default.ArrowBack, "Назад")
                         }
                     }
                 },

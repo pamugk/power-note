@@ -1,7 +1,9 @@
 package ui
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Lightbulb
@@ -12,15 +14,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import data.repository.InMemoryNoteRepository
 import data.repository.NoteRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
-import ui.data.state.AppState
 import ui.navigation.Location
-import ui.pages.ArchivePage
-import ui.pages.NotesPage
-import ui.viewmodel.AppViewModel
+import ui.state.AppState
+import ui.widgets.LoadingScreen
 
-private data class AppNavigationDestination(
+internal data class AppNavigationDestination(
     val icon: ImageVector,
     val label: String,
     val location: Location,
@@ -29,17 +27,23 @@ private data class AppNavigationDestination(
 @Composable
 @Preview
 fun App(noteRepository: NoteRepository = InMemoryNoteRepository()) {
-    val appViewModel = remember { AppViewModel(noteRepository) }
+    val appState = remember { AppState(noteRepository) }
+
+    var currentLocation by remember { appState.currentLocation }
     val destinations = listOf(
         AppNavigationDestination(Icons.Outlined.Lightbulb, "Заметки", Location.MAIN),
         AppNavigationDestination(Icons.Outlined.Archive, "Архив", Location.ARCHIVE),
     )
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val state by appViewModel.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        appState.initialize()
+    }
 
     AppTheme {
         BoxWithConstraints {
+            val mediumUi = maxWidth < 720.dp
             val compactUi = maxWidth < 500.dp
 
             Scaffold(
@@ -48,8 +52,8 @@ fun App(noteRepository: NoteRepository = InMemoryNoteRepository()) {
                         NavigationBar {
                             destinations.forEach { destination ->
                                 NavigationBarItem(
-                                    selected = state.currentLocation == destination.location,
-                                    onClick = { appViewModel.navigate(destination.location) },
+                                    selected = currentLocation == destination.location,
+                                    onClick = { currentLocation = destination.location },
                                     icon = { Icon(destination.icon, destination.label) },
                                     label = { Text(destination.label) },
                                 )
@@ -61,96 +65,27 @@ fun App(noteRepository: NoteRepository = InMemoryNoteRepository()) {
                     SnackbarHost(hostState = snackbarHostState)
                 }
             ) { innerPadding ->
-                if (compactUi) {
-                    AppContent(
-                        compact = compactUi,
-                        innerPadding = innerPadding,
-                        scope = scope,
-                        snackbarState = snackbarHostState,
-                        state = state,
-                        viewModel = appViewModel
-                    )
-                } else {
-                    PermanentNavigationDrawer(
-                        drawerContent = {
-                            PermanentDrawerSheet(Modifier.width(IntrinsicSize.Min)) {
-                                Spacer(Modifier.height(12.dp))
-                                destinations.forEach { destination ->
-                                    NavigationDrawerItem(
-                                        label = { Text(destination.label) },
-                                        selected = state.currentLocation == destination.location,
-                                        onClick = { appViewModel.navigate(destination.location) },
-                                        icon = { Icon(destination.icon, destination.label) },
-                                    )
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxHeight().padding(innerPadding),
-                    ) {
+                AppContentNavigator(
+                    compactUi = compactUi,
+                    currentLocation = currentLocation,
+                    destinations = destinations,
+                    mediumUi = mediumUi,
+                    modifier = Modifier.padding(innerPadding),
+                    navigate = { currentLocation = it }
+                ) { innerModifier ->
+                    if (appState.initialized.value) {
                         AppContent(
+                            modifier = innerModifier,
                             compact = compactUi,
                             scope = scope,
                             snackbarState = snackbarHostState,
-                            state = state,
-                            viewModel = appViewModel
+                            viewModel = appState
                         )
+                    } else {
+                        LoadingScreen(modifier = innerModifier.fillMaxSize())
                     }
                 }
             }
         }
     }
-}
-
-@Composable
-private fun AppContent(
-    compact: Boolean,
-    innerPadding: PaddingValues = PaddingValues(0.dp),
-    scope: CoroutineScope,
-    snackbarState: SnackbarHostState,
-    state: AppState,
-    viewModel: AppViewModel
-) {
-    when (state.currentLocation) {
-        Location.MAIN -> NotesPage(
-            state = state.notesPageState,
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
-            compact = compact,
-            onArchiveNote = { archivedNote ->
-                viewModel.archiveNote(archivedNote)
-                scope.launch {
-                    val result = snackbarState
-                        .showSnackbar(
-                            message = "Заметка с заголовком \"${archivedNote.header}\" помещена в архив",
-                            actionLabel = "Вернуть",
-                            duration = SnackbarDuration.Short
-                        )
-                    when (result) {
-                        SnackbarResult.ActionPerformed -> {
-                            viewModel.unarchiveNote(archivedNote)
-                        }
-                        SnackbarResult.Dismissed -> {}
-                    }
-
-                }
-            },
-            onBack = { viewModel.returnToList() },
-            onEdit = { viewModel.editNoteDraft(it) },
-            onResetChanges = { viewModel.resetChanges() },
-            onSaveNote = { viewModel.saveNoteDraft(it) },
-            onStartEditing = { viewModel.startEditing(it) },
-            onViewNewNoteDraft = { viewModel.viewNewNoteDraft() },
-            onViewNote = { viewModel.viewNote(it) }
-        )
-
-        Location.ARCHIVE -> ArchivePage(
-            state = state.archivePageState,
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
-            compact = compact,
-            onBack = { viewModel.returnToList() },
-            onDeleteNote = { viewModel.deleteNote(it) },
-            onUnarchiveNote = { viewModel.unarchiveNote(it) },
-            onViewNote = { viewModel.viewNote(it) }
-        )
-    }
-
 }

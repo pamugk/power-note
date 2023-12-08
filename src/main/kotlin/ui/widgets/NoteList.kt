@@ -16,9 +16,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import entity.Note
-import entity.NoteDraft
 import ui.AppTheme
 import ui.data.stub.getExampleNote
+import ui.state.NoteDraftState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,7 +27,7 @@ fun NoteList(
     modifier: Modifier = Modifier,
     compact: Boolean = false,
     allowedCreateNew: Boolean = false,
-    draft: NoteDraft? = null,
+    draft: NoteDraftState = NoteDraftState(),
     onCreateNew: () -> Unit = {},
     onDraftClick: () -> Unit = {},
     onItemClick: (Note) -> Unit = {},
@@ -37,7 +37,7 @@ fun NoteList(
     Scaffold(
         modifier = modifier,
         topBar = {
-            if (allowedCreateNew && draft == null) {
+            if (allowedCreateNew && !draft.inProcess.value) {
                 TopAppBar(
                     title = {},
                     navigationIcon = {},
@@ -53,16 +53,16 @@ fun NoteList(
         }
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            if (draft != null && draft.id == null) {
+            if (draft.editingNote(null)) {
                 NewNoteItem(
-                    draft,
+                    compact = compact,
                     modifier = Modifier
                         .clickable { onDraftClick() }
                         .padding(
                             start = 10.dp, end = if (compact) 10.dp else 22.dp,
                             bottom = 10.dp, top = 10.dp
                         ),
-                    compact = compact
+                    noteDraft = draft
                 )
             }
             Box(
@@ -78,7 +78,7 @@ fun NoteList(
                             note = note,
                             modifier = Modifier.clickable { onItemClick(note) },
                             compact = compact,
-                            hasDraft = note.id == draft?.id
+                            hasDraft = draft.editingNote(note)
                         )
                     }
                 }

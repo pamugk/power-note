@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Lightbulb
-import androidx.compose.material.icons.outlined.Notes
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -18,13 +17,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import entity.Note
-import entity.NoteDraft
-import ui.navigation.ActivePane
 import ui.AppTheme
-import ui.data.state.NotesPageState
 import ui.data.stub.getExampleNewNote
 import ui.data.stub.getExampleNote
 import ui.data.stub.getExampleNotes
+import ui.navigation.ActivePane
+import ui.state.NoteDraftState
+import ui.state.NotesPageState
 import ui.widgets.NoteEditor
 import ui.widgets.NoteList
 import ui.widgets.NoteView
@@ -32,19 +31,12 @@ import ui.widgets.Tooltip
 
 @Composable
 fun NotesPage(
-    state: NotesPageState,
-    modifier: Modifier = Modifier,
     compact: Boolean = false,
+    modifier: Modifier = Modifier,
     onArchiveNote: (Note) -> Unit = {},
-    onBack: () -> Unit = {},
-    onEdit: (NoteDraft) -> Unit = {},
-    onResetChanges: () -> Unit = {},
-    onSaveNote: (NoteDraft) -> Unit = {},
-    onStartEditing: (Note?) -> Unit = {},
-    onViewNewNoteDraft: () -> Unit = {},
-    onViewNote: (Note) -> Unit = {}
+    state: NotesPageState
 ) {
-    if (state.notes.isEmpty() && state.draft == null) {
+    if (state.notes.value.isEmpty() && !state.draft.inProcess.value) {
         Scaffold(
             modifier = modifier,
             floatingActionButton = {
@@ -52,7 +44,7 @@ fun NotesPage(
                     tooltip = "Добавить заметку"
                 ) {
                     FloatingActionButton(
-                        onClick = { onStartEditing(null) },
+                        onClick = { state.draft.startEditing(null) },
                     ) {
                         Icon(Icons.Default.Add, "Добавить заметку")
                     }
@@ -81,97 +73,38 @@ fun NotesPage(
             }
         }
     } else {
-        if (compact) {
-            when (state.activePane) {
-                ActivePane.LIST -> {
-                    NoteList(
-                        state.notes,
-                        modifier = modifier,
-                        compact = compact,
-                        allowedCreateNew = true,
-                        draft = state.draft,
-                        onCreateNew = { onStartEditing(null) },
-                        onDraftClick = onViewNewNoteDraft,
-                        onItemClick = onViewNote
-                    )
-                }
-                ActivePane.VIEW -> {
-                    if (state.draft != null && state.viewedNote?.id == state.draft.id) {
-                        NoteEditor(
-                            noteDraft = state.draft,
-                            modifier = modifier,
-                            compact = compact,
-                            onBack = onBack,
-                            onResetChanges = onResetChanges,
-                            onEdit = onEdit,
-                            onSave = { onSaveNote(state.draft) },
-                        )
-                    } else if (state.viewedNote != null) {
-                        NoteView(
-                            note = state.viewedNote,
-                            modifier = modifier,
-                            compact = compact,
-                            editInProcess = state.draft != null,
-                            onBack = onBack,
-                            onStartEditing = { onStartEditing(state.viewedNote) },
-                            onToggleArchivedState = { onArchiveNote(state.viewedNote) },
-                        )
-                    }
-                }
-            }
-        } else {
-            Row(modifier = modifier) {
+        when (state.activePane.value) {
+            ActivePane.LIST -> {
                 NoteList(
-                    state.notes,
-                    modifier = Modifier.fillMaxHeight().fillMaxWidth(0.4f),
+                    state.notes.value,
+                    modifier = modifier,
                     compact = compact,
                     allowedCreateNew = true,
                     draft = state.draft,
-                    onCreateNew = { onStartEditing(null) },
-                    onDraftClick = onViewNewNoteDraft,
-                    onItemClick = onViewNote
+                    onCreateNew = { state.draft.startEditing(null) },
+                    onDraftClick = { state.activePane.value = ActivePane.VIEW },
+                    onItemClick = state::viewNote
                 )
-                if (state.draft != null && state.viewedNote?.id == state.draft.id) {
+            }
+            ActivePane.VIEW -> {
+                val viewedNote = state.viewedNote.value
+                if (state.draft.editingNote(viewedNote)) {
                     NoteEditor(
-                        noteDraft = state.draft,
-                        modifier = Modifier.fillMaxSize(),
                         compact = compact,
-                        onBack = onBack,
-                        onResetChanges = onResetChanges,
-                        onEdit = onEdit,
-                        onSave = { onSaveNote(state.draft) },
+                        modifier = modifier,
+                        onBack = state::goBack,
+                        state = state.draft
                     )
-                } else if (state.viewedNote != null) {
+                } else if (viewedNote != null) {
                     NoteView(
-                        note = state.viewedNote,
-                        modifier = Modifier.fillMaxSize(),
+                        note = viewedNote,
+                        modifier = modifier,
                         compact = compact,
-                        editInProcess = state.draft != null,
-                        onBack = onBack,
-                        onStartEditing = { onStartEditing(state.viewedNote) },
-                        onToggleArchivedState = { onArchiveNote(state.viewedNote) },
+                        editInProcess = state.draft.inProcess.value,
+                        onBack = state::goBack,
+                        onStartEditing = { state.draft.startEditing(viewedNote) },
+                        onToggleArchivedState = { onArchiveNote(viewedNote) },
                     )
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Notes,
-                            contentDescription = "Место для отображения заметки",
-                            modifier = Modifier.size(120.dp),
-                            tint = Color(229, 229, 229),
-                        )
-                        Spacer(Modifier.height(20.dp))
-                        Text(
-                            text = "Здесь будут отображаться данные выбранной заметки.",
-                            color = Color(95, 99, 104),
-                            fontSize = 22.sp,
-                            textAlign = TextAlign.Center,
-                            lineHeight = 28.sp,
-                        )
-                    }
                 }
             }
         }
@@ -183,12 +116,7 @@ fun NotesPage(
 private fun NotesPageEmptyPreview() {
     AppTheme {
         NotesPage(
-            state = NotesPageState(
-                activePane = ActivePane.LIST,
-                draft = null,
-                notes = emptyList(),
-                viewedNote = null,
-            ),
+            state = NotesPageState(),
             modifier = Modifier.fillMaxSize()
         )
     }
@@ -200,10 +128,7 @@ private fun NotesPageFilledPreview() {
     AppTheme {
         NotesPage(
             state = NotesPageState(
-                activePane = ActivePane.LIST,
-                draft = null,
-                notes = getExampleNotes(),
-                viewedNote = null,
+                initialNotes = getExampleNotes(),
             ),
             modifier = Modifier.fillMaxSize(),
         )
@@ -215,14 +140,11 @@ private fun NotesPageFilledPreview() {
 private fun NotesPageFilledCompactPreview() {
     AppTheme {
         NotesPage(
-            state = NotesPageState(
-                activePane = ActivePane.LIST,
-                draft = null,
-                notes = getExampleNotes(),
-                viewedNote = null,
-            ),
-            modifier = Modifier.fillMaxSize(),
             compact = true,
+            modifier = Modifier.fillMaxSize(),
+            state = NotesPageState(
+                initialNotes = getExampleNotes(),
+            )
         )
     }
 }
@@ -233,10 +155,8 @@ private fun NotesPageFirstNotePreview() {
     AppTheme {
         NotesPage(
             state = NotesPageState(
-                activePane = ActivePane.VIEW,
-                draft = getExampleNewNote(),
-                notes = emptyList(),
-                viewedNote = null,
+                draft = NoteDraftState(getExampleNewNote()),
+                initialActivePane = ActivePane.VIEW
             ),
             modifier = Modifier.fillMaxSize()
         )
@@ -249,10 +169,9 @@ private fun NotesPageViewCompactPreview() {
     AppTheme {
         NotesPage(
             state = NotesPageState(
-                activePane = ActivePane.VIEW,
-                draft = null,
-                notes = getExampleNotes(),
-                viewedNote = getExampleNote(),
+                initialActivePane = ActivePane.VIEW,
+                initialNotes = getExampleNotes(),
+                initialViewedNote = getExampleNote(),
             ),
             modifier = Modifier.fillMaxSize(),
             compact = true,
@@ -266,10 +185,8 @@ private fun NotesPageViewPreview() {
     AppTheme {
         NotesPage(
             state = NotesPageState(
-                activePane = ActivePane.LIST,
-                draft = null,
-                notes = getExampleNotes(),
-                viewedNote = getExampleNote(),
+                initialNotes = getExampleNotes(),
+                initialViewedNote = getExampleNote(),
             ),
             modifier = Modifier.fillMaxSize(),
         )

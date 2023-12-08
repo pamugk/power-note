@@ -8,18 +8,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import entity.NoteDraft
 import ui.AppTheme
 import ui.data.stub.getExampleNewNote
+import ui.state.NoteDraftState
 import ui.utils.spaceNormalizationRegex
 
 @Composable
 fun NewNoteItem(
-    noteDraft: NoteDraft,
-    modifier: Modifier = Modifier,
     compact: Boolean = false,
+    modifier: Modifier = Modifier,
+    noteDraft: NoteDraftState
 ) {
-    val contentPreview = noteDraft.content.replace(spaceNormalizationRegex, " ")
+    val contentPreview = noteDraft.content.annotatedString.replace(spaceNormalizationRegex, " ")
 
     OutlinedCard(
         modifier = modifier,
@@ -27,7 +27,7 @@ fun NewNoteItem(
         ListItem(
             headlineContent = {
                 Text(
-                    text = noteDraft.header,
+                    text = noteDraft.header.value,
                     overflow = TextOverflow.Ellipsis,
                     maxLines = 1,
                 )
@@ -52,7 +52,7 @@ fun NewNoteItem(
 private fun NewNoteItemPreview() {
     AppTheme {
         NewNoteItem(
-            noteDraft = getExampleNewNote()
+            noteDraft = NoteDraftState(getExampleNewNote())
         )
     }
 }

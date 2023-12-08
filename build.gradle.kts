@@ -23,6 +23,7 @@ dependencies {
     implementation(compose.materialIconsExtended)
     implementation(compose.material3)
     implementation("ch.qos.logback:logback-classic:1.4.14")
+    implementation("com.mohamedrejeb.richeditor:richeditor-compose:1.0.0-beta05")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")

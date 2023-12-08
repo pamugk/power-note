@@ -4,36 +4,29 @@ import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Archive
-import androidx.compose.material.icons.outlined.Notes
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import entity.Note
-import ui.navigation.ActivePane
 import ui.AppTheme
-import ui.data.state.ArchivePageState
 import ui.data.stub.getExampleArchivedNote
 import ui.data.stub.getExampleArchivedNotes
+import ui.state.ArchivePageState
 import ui.widgets.NoteList
 import ui.widgets.NoteView
 
 @Composable
 fun ArchivePage(
-    state: ArchivePageState,
-    modifier: Modifier = Modifier,
     compact: Boolean = false,
-    onBack: () -> Unit = {},
-    onDeleteNote: (Note) -> Unit = {},
-    onUnarchiveNote: (Note) -> Unit = {},
-    onViewNote: (Note) -> Unit = {}
+    modifier: Modifier = Modifier,
+    state: ArchivePageState
 ) {
-    if (state.notes.isEmpty()) {
+    if (state.notes.value.isEmpty()) {
         Column(
             modifier = modifier,
             verticalArrangement = Arrangement.Center,
@@ -55,66 +48,23 @@ fun ArchivePage(
             )
         }
     } else {
-        if (compact) {
-            when (state.activePane) {
-                ActivePane.LIST -> {
-                    NoteList(
-                        state.notes,
-                        modifier = modifier,
-                        compact = compact,
-                        onItemClick = onViewNote
-                    )
-                }
-                ActivePane.VIEW -> {
-                    NoteView(
-                        note = state.viewedNote!!,
-                        modifier = modifier,
-                        compact = compact,
-                        onBack = onBack,
-                        onToggleArchivedState = { onUnarchiveNote(state.viewedNote) },
-                    )
-                }
-            }
+        val viewedNote = state.viewedNote.value
+        if (viewedNote == null) {
+            NoteList(
+                state.notes.value,
+                modifier = modifier,
+                compact = compact,
+                onItemClick = { state.viewedNote.value = it }
+            )
         } else {
-            Row(modifier = modifier) {
-                NoteList(
-                    state.notes,
-                    modifier = Modifier.fillMaxHeight().fillMaxWidth(0.4f),
-                    compact = compact,
-                    onItemClick = onViewNote
-                )
-                if (state.viewedNote != null) {
-                    NoteView(
-                        note = state.viewedNote,
-                        modifier = Modifier.fillMaxSize(),
-                        compact = compact,
-                        onBack = onBack,
-                        onDelete = { onDeleteNote(state.viewedNote) },
-                        onToggleArchivedState = { onUnarchiveNote(state.viewedNote) },
-                    )
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Notes,
-                            contentDescription = "Место для отображения заметки",
-                            modifier = Modifier.size(120.dp),
-                            tint = Color(229, 229, 229),
-                        )
-                        Spacer(Modifier.height(20.dp))
-                        Text(
-                            text = "Здесь будут отображаться данные выбранной заметки.",
-                            color = Color(95, 99, 104),
-                            fontSize = 22.sp,
-                            textAlign = TextAlign.Center,
-                            lineHeight = 28.sp,
-                        )
-                    }
-                }
-            }
+            NoteView(
+                note = viewedNote,
+                modifier = modifier,
+                compact = compact,
+                onBack = { state.viewedNote.value = null },
+                onDelete = { state.deleteNote(viewedNote) },
+                onToggleArchivedState = { state.unarchiveNote(viewedNote) },
+            )
         }
     }
 }
@@ -124,12 +74,8 @@ fun ArchivePage(
 private fun ArchivePageEmptyPreview() {
     AppTheme {
         ArchivePage(
-            state = ArchivePageState(
-                activePane = ActivePane.LIST,
-                notes = emptyList(),
-                viewedNote = null
-            ),
             modifier = Modifier.fillMaxSize(),
+            state = ArchivePageState()
         )
     }
 }
@@ -138,13 +84,12 @@ private fun ArchivePageEmptyPreview() {
 private fun ArchivePageFilledCompactListPreview() {
     AppTheme {
         ArchivePage(
-            state = ArchivePageState(
-                activePane = ActivePane.LIST,
-                notes = getExampleArchivedNotes(),
-                viewedNote = getExampleArchivedNote()
-            ),
+            compact = true,
             modifier = Modifier.fillMaxSize(),
-            compact = true
+            state = ArchivePageState(
+                initialNotes = getExampleArchivedNotes(),
+                initialViewedNote = getExampleArchivedNote()
+            )
         )
     }
 }
@@ -153,13 +98,12 @@ private fun ArchivePageFilledCompactListPreview() {
 private fun ArchivePageFilledCompactViewPreview() {
     AppTheme {
         ArchivePage(
-            state = ArchivePageState(
-                activePane = ActivePane.VIEW,
-                notes = getExampleArchivedNotes(),
-                viewedNote = getExampleArchivedNote()
-            ),
+            compact = true,
             modifier = Modifier.fillMaxSize(),
-            compact = true
+            state = ArchivePageState(
+                initialNotes = getExampleArchivedNotes(),
+                initialViewedNote = getExampleArchivedNote()
+            )
         )
     }
 }
@@ -169,12 +113,11 @@ private fun ArchivePageFilledCompactViewPreview() {
 private fun ArchivePageFilledPreview() {
     AppTheme {
         ArchivePage(
-            state = ArchivePageState(
-                activePane = ActivePane.LIST,
-                notes = getExampleArchivedNotes(),
-                viewedNote = getExampleArchivedNote()
-            ),
             modifier = Modifier.fillMaxSize(),
+            state = ArchivePageState(
+                initialNotes = getExampleArchivedNotes(),
+                initialViewedNote = getExampleArchivedNote()
+            )
         )
     }
 }
@@ -184,12 +127,10 @@ private fun ArchivePageFilledPreview() {
 private fun ArchivePageFilledWithoutSelectedPreview() {
     AppTheme {
         ArchivePage(
-            state = ArchivePageState(
-                activePane = ActivePane.LIST,
-                notes = getExampleArchivedNotes(),
-                viewedNote = null
-            ),
             modifier = Modifier.fillMaxSize(),
+            state = ArchivePageState(
+                initialNotes = getExampleArchivedNotes()
+            )
         )
     }
 }

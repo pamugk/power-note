@@ -16,44 +16,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import entity.NoteDraft
+import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import ui.AppTheme
 import ui.data.stub.getExampleNewNote
+import ui.state.NoteDraftState
 
 private enum class ShownDialogOnEdit {
     NONE,
     UNSAVED_CHANGES,
 }
 
-private const val MAX_CONTENT_LENGTH = 20000
-private const val MAX_HEADER_LENGTH = 1000
-
-private fun draftIsValid(noteDraft: NoteDraft) =
-    noteDraft.content.isNotEmpty() && noteDraft.content.length <= MAX_CONTENT_LENGTH
-            && noteDraft.header.isNotEmpty() && noteDraft.header.length <= MAX_HEADER_LENGTH
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteEditor(
-    noteDraft: NoteDraft,
-    modifier: Modifier = Modifier,
     compact: Boolean = false,
+    modifier: Modifier = Modifier,
     onBack: () -> Unit = {},
-    onEdit: (NoteDraft) -> Unit = {},
-    onResetChanges: () -> Unit = {},
-    onSave: () -> Unit = {},
+    state: NoteDraftState,
 ) {
     var shownDialog by remember { mutableStateOf(ShownDialogOnEdit.NONE) }
-
     val textScrollState = rememberScrollState(0)
 
     when(shownDialog) {
         ShownDialogOnEdit.NONE -> {}
         ShownDialogOnEdit.UNSAVED_CHANGES -> {
             UnsavedChangesDialog(
-                onConfirm = {
-                    onResetChanges()
-                },
+                onConfirm = state::reset,
                 onDismiss = {
                     shownDialog = ShownDialogOnEdit.NONE
                 }
@@ -67,27 +55,25 @@ fun NoteEditor(
             LargeTopAppBar(
                 title = {
                     TextField(
-                        value = noteDraft.header,
-                        onValueChange = { onEdit(noteDraft.copy(header = it)) },
+                        value = state.header.value,
+                        onValueChange = { state.header.value = it },
                         modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
                         label = { Text("Заголовок") },
                         supportingText = {
                             Text(
-                                text = "${noteDraft.header.length} / $MAX_HEADER_LENGTH",
+                                text = "${state.header.value.length} / ${state.maxHeaderLength}",
                                 modifier = Modifier.fillMaxWidth(),
                                 textAlign = TextAlign.End,
                             )
                         },
-                        isError = noteDraft.header.length > MAX_HEADER_LENGTH,
+                        isError = state.invalidHeader,
                         singleLine = true,
                     )
                 },
                 navigationIcon = {
-                    if (compact) {
-                        Tooltip(tooltip = "Назад") {
-                            IconButton(onClick = onBack) {
-                                Icon(Icons.Default.ArrowBack, "Назад")
-                            }
+                    Tooltip(tooltip = "Назад") {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Default.ArrowBack, "Назад")
                         }
                     }
                 },
@@ -108,10 +94,10 @@ fun NoteEditor(
             BottomAppBar(
                 actions = {},
                 floatingActionButton = {
-                    if (draftIsValid(noteDraft)) {
+                    if (state.valid()) {
                         Tooltip(tooltip = "Сохранить") {
                             FloatingActionButton(
-                                onClick = onSave,
+                                onClick = state::save,
                             ) {
                                 Icon(Icons.Default.Save, "Сохранить")
                             }
@@ -121,29 +107,34 @@ fun NoteEditor(
             )
         }
     ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            TextField(
-                value = noteDraft.content,
-                onValueChange = { onEdit(noteDraft.copy(content = it)) },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-                    .verticalScroll(textScrollState),
-                label = { Text("Содержимое") },
-                supportingText = {
-                    Text(
-                        text = "${noteDraft.content.length} / $MAX_CONTENT_LENGTH",
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.End,
-                    )
-                },
-                isError = noteDraft.content.length > MAX_CONTENT_LENGTH
+        Column(Modifier.fillMaxSize().padding(innerPadding)) {
+            RichTextStyleRow(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                state = state.content,
             )
-            if (!compact) {
-                VerticalScrollbar(
-                    modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
-                    adapter = rememberScrollbarAdapter(textScrollState)
+            Box(modifier = Modifier.fillMaxSize()) {
+                RichTextEditor(
+                    state = state.content,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp)
+                        .verticalScroll(textScrollState),
+                    label = { Text("Содержимое") },
+                    supportingText = {
+                        Text(
+                            text = "${state.content.annotatedString.length} / ${state.maxContentLength}",
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.End,
+                        )
+                    },
+                    isError = state.invalidContent
                 )
+                if (!compact) {
+                    VerticalScrollbar(
+                        modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                        adapter = rememberScrollbarAdapter(textScrollState)
+                    )
+                }
             }
         }
     }
@@ -154,8 +145,8 @@ fun NoteEditor(
 private fun NoteEditorPreview() {
     AppTheme {
         NoteEditor(
-            noteDraft = getExampleNewNote(),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            state = NoteDraftState(getExampleNewNote())
         )
     }
 }
