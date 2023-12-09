@@ -14,7 +14,8 @@ fun getExampleArchivedNote() = Note(
     content = """
             Для разнообразия тут не такой уж и большой текст.
             Вполне умещается в две строчки, да.
-        """.trimIndent()
+        """.trimIndent(),
+    styledContent = null
 )
 
 fun getExampleArchivedNotes() =
@@ -57,6 +58,7 @@ fun getExampleNote() =
 
                     Nam feugiat blandit tortor, quis vestibulum ante finibus eu. Proin non elit at velit fermentum condimentum. Aenean pulvinar blandit turpis, vitae cursus massa consectetur non. Cras pulvinar mi mollis, elementum dui a, vulputate sem. Maecenas ullamcorper nulla eget lorem placerat, et tristique odio sollicitudin. Mauris sodales dolor non mauris congue, nec blandit ante congue. Cras ut varius magna. Fusce consequat erat id ullamcorper blandit. Sed id pharetra ipsum. 
                 """.trimIndent(),
+        styledContent = null
     )
 
 fun getExampleNotes() =

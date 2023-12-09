@@ -10,13 +10,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mohamedrejeb.richeditor.model.RichTextState
 
 private data class TextSpanStyle(
@@ -31,6 +31,7 @@ fun RichTextStyleRow(
     state: RichTextState,
 ) {
     val selectedText = !state.selection.collapsed
+    var showLinkDialog by remember { mutableStateOf(false) }
     var textStylesExpanded by remember { mutableStateOf(false) }
     val textStyles = listOf(
         TextSpanStyle(
@@ -62,7 +63,9 @@ fun RichTextStyleRow(
             MaterialTheme.typography.titleSmall
         ),
     )
-    var textStylesSelected by remember { mutableStateOf(textStyles[0]) }
+    val textStylesSelected = textStyles.firstOrNull {
+        it.style.toSpanStyle() == state.currentSpanStyle
+    } ?: textStyles[0]
 
     LazyRow(
         verticalAlignment = Alignment.CenterVertically,
@@ -71,27 +74,34 @@ fun RichTextStyleRow(
         item {
             ExposedDropdownMenuBox(
                 expanded = textStylesExpanded,
-                onExpandedChange = { textStylesExpanded = it }
+                onExpandedChange = {
+                    textStylesExpanded = selectedText && it
+                }
             ) {
                 TextField(
                     value = textStylesSelected.name,
                     onValueChange = {},
-                    modifier = Modifier.menuAnchor().width(IntrinsicSize.Min),
+                    modifier = Modifier.focusProperties { canFocus = false }.menuAnchor().width(IntrinsicSize.Min),
                     enabled = selectedText,
                     readOnly = true,
                     label = { Text("Стиль") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = textStylesExpanded) },
+                    trailingIcon = {
+                        if (selectedText) {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = textStylesExpanded)
+                        }
+                    },
                     colors = ExposedDropdownMenuDefaults.textFieldColors(),
                 )
                 ExposedDropdownMenu(
                     expanded = textStylesExpanded,
                     onDismissRequest = { textStylesExpanded = false },
+                    modifier = Modifier.focusProperties { canFocus = false }
                 ) {
                     textStyles.forEach { textStyleOption ->
                         DropdownMenuItem(
                             text = { Text(textStyleOption.name, style = textStyleOption.style) },
                             onClick = {
-                                textStylesSelected = textStyleOption
+                                state.toggleSpanStyle(textStyleOption.style.toSpanStyle())
                                 textStylesExpanded = false
                             },
                             contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
@@ -99,10 +109,6 @@ fun RichTextStyleRow(
                     }
                 }
             }
-        }
-
-        item {
-            Divider(Modifier.height(16.dp).width(1.dp))
         }
 
         item {
@@ -133,13 +139,6 @@ fun RichTextStyleRow(
                 icon = Icons.Outlined.FormatStrikethrough
             )
         }
-        item {
-            EditorButton(
-                onClick = { state.toggleSpanStyle(SpanStyle(fontSize = 28.sp)) },
-                isSelected = state.currentSpanStyle.fontSize == 28.sp,
-                icon = Icons.Outlined.FormatSize
-            )
-        }
 
         item {
             Divider(Modifier.height(16.dp).width(1.dp))
@@ -149,15 +148,43 @@ fun RichTextStyleRow(
             EditorButton(
                 onClick = { state.toggleUnorderedList() },
                 isSelected = state.isUnorderedList,
-                icon = Icons.Outlined.FormatListBulleted,
+                icon = Icons.Outlined.FormatListBulleted
             )
         }
         item {
             EditorButton(
                 onClick = { state.toggleOrderedList() },
                 isSelected = state.isOrderedList,
-                icon = Icons.Outlined.FormatListNumbered,
+                icon = Icons.Outlined.FormatListNumbered
             )
         }
+
+        item {
+            Divider(Modifier.height(16.dp).width(1.dp))
+        }
+
+        item {
+            EditorButton(
+                onClick = {
+                    if (!state.isLink) {
+                        showLinkDialog = true
+                    }
+                },
+                isSelected = state.isLink,
+                icon = Icons.Outlined.AddLink
+            )
+        }
+    }
+
+    if (showLinkDialog) {
+        LinkDialog(
+            onConfirm = { createdLink ->
+                state.addLink(createdLink.text, createdLink.link)
+                showLinkDialog = false
+            },
+            onDismiss = {
+                showLinkDialog = false
+            }
+        )
     }
 }

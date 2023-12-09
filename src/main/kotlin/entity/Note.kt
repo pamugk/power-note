@@ -13,6 +13,7 @@ data class Note(
     // Содержимое
     val header: String,
     val content: String,
+    val styledContent: String?
 ) {
     val archived: Boolean
         get() = archivedAt != null
@@ -23,4 +24,5 @@ data class NoteDraft(
     val id: Long? = null,
     val header: String,
     val content: String,
+    val styledContent: String? = null
 )

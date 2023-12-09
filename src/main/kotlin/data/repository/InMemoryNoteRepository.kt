@@ -59,7 +59,8 @@ class InMemoryNoteRepository: NoteRepository {
                         id = lastUsedId.getAndIncrement(),
                         createdAt = Clock.System.now(),
                         header = savedDraft.header,
-                        content = savedDraft.content
+                        content = savedDraft.content,
+                        styledContent = savedDraft.content
                     )
                     oldNotes + Pair(newNoteState.id, newNoteState)
                 }
@@ -68,7 +69,8 @@ class InMemoryNoteRepository: NoteRepository {
                         oldNotes - savedDraft.id + Pair(savedDraft.id, oldEditedNote.copy(
                             lastUpdatedAt = Clock.System.now(),
                             header = savedDraft.header,
-                            content = savedDraft.content
+                            content = savedDraft.content,
+                            styledContent = savedDraft.styledContent
                         ))
                     } ?: oldNotes
                 }

@@ -24,7 +24,8 @@ private fun mapNoteRow(row: ResultRow) =
         lastUpdatedAt = row[NoteTable.lastUpdatedAt],
         archivedAt = row[NoteTable.archivedAt],
         header = row[NoteTable.header],
-        content = row[NoteTable.content]
+        content = row[NoteTable.content],
+        styledContent = row[NoteTable.styledContent]
     )
 
 class DbNoteRepository: NoteRepository {
@@ -86,7 +87,7 @@ class DbNoteRepository: NoteRepository {
             transactionIsolation = Connection.TRANSACTION_SERIALIZABLE) {
             addLogger(Slf4jSqlDebugLogger)
 
-            SchemaUtils.create(NoteTable)
+            SchemaUtils.createMissingTablesAndColumns(NoteTable)
         }
         fetchNotes()
     }
@@ -117,12 +118,14 @@ class DbNoteRepository: NoteRepository {
                     it[lastUpdatedAt] = operationTime
                     it[header] = savedDraft.header
                     it[content] = savedDraft.content
+                    it[styledContent] = savedDraft.styledContent
                 }
             } else {
-                NoteTable.update({ NoteTable.id eq savedDraft.id }) {
+                NoteTable.update({ (NoteTable.id eq savedDraft.id).and(NoteTable.archivedAt.isNull()) }) {
                     it[lastUpdatedAt] = operationTime
                     it[header] = savedDraft.header
                     it[content] = savedDraft.content
+                    it[styledContent] = savedDraft.styledContent
                 }
             }
         }

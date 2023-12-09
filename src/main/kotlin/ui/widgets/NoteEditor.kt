@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import ui.AppTheme
@@ -52,22 +53,12 @@ fun NoteEditor(
     Scaffold(
         modifier = modifier,
         topBar = {
-            LargeTopAppBar(
+            TopAppBar(
                 title = {
-                    TextField(
-                        value = state.header.value,
-                        onValueChange = { state.header.value = it },
-                        modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
-                        label = { Text("Заголовок") },
-                        supportingText = {
-                            Text(
-                                text = "${state.header.value.length} / ${state.maxHeaderLength}",
-                                modifier = Modifier.fillMaxWidth(),
-                                textAlign = TextAlign.End,
-                            )
-                        },
-                        isError = state.invalidHeader,
-                        singleLine = true,
+                    Text(
+                        text = if (state.processedNoteId.value == null) "Создание заметки" else "Редактирование заметки",
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1
                     )
                 },
                 navigationIcon = {
@@ -108,17 +99,31 @@ fun NoteEditor(
         }
     ) { innerPadding ->
         Column(Modifier.fillMaxSize().padding(innerPadding)) {
+            TextField(
+                value = state.header.value,
+                onValueChange = { state.header.value = it },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                label = { Text("Заголовок") },
+                supportingText = {
+                    Text(
+                        text = "${state.header.value.length} / ${state.maxHeaderLength}",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.End,
+                    )
+                },
+                isError = state.invalidHeader,
+                singleLine = true,
+            )
+            Spacer(Modifier.height(8.dp))
             RichTextStyleRow(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 state = state.content,
             )
+            Spacer(Modifier.height(8.dp))
             Box(modifier = Modifier.fillMaxSize()) {
                 RichTextEditor(
                     state = state.content,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                        .verticalScroll(textScrollState),
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp).verticalScroll(textScrollState),
                     label = { Text("Содержимое") },
                     supportingText = {
                         Text(

@@ -36,8 +36,12 @@ class NoteDraftState(
     fun startEditing(note: Note?) {
         note?.let {
             processedNoteId.value = it.id
-            content.setText(it.content)
             header.value = it.header
+            if (it.styledContent == null) {
+                content.setText(it.content)
+            } else {
+                content.setHtml(it.styledContent)
+            }
         }
         _inProcess.value = true
         onStartEditing()
@@ -55,7 +59,9 @@ class NoteDraftState(
         onSave(
             NoteDraft(
                 id = processedNoteId.value,
-                header = header.value, content = content.annotatedString.text
+                header = header.value,
+                content = content.annotatedString.text,
+                styledContent = content.toHtml()
             )
         )
 
