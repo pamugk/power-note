@@ -64,7 +64,9 @@ fun RichTextStyleRow(
         ),
     )
     val textStylesSelected = textStyles.firstOrNull {
-        it.style.toSpanStyle() == state.currentSpanStyle
+        val spanStyle = it.style.toSpanStyle()
+        spanStyle.fontWeight == state.currentSpanStyle.fontWeight
+            && spanStyle.fontSize == state.currentSpanStyle.fontSize
     } ?: textStyles[0]
 
     LazyRow(
