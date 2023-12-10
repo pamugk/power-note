@@ -112,51 +112,40 @@ fun RichTextStyleRow(
         }
 
         item {
-            EditorButton(
-                onClick = { state.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold)) },
-                isSelected = state.currentSpanStyle.fontWeight == FontWeight.Bold,
-                icon = Icons.Outlined.FormatBold
-            )
+            Tooltip(tooltip = "Жирный") {
+                EditorButton(
+                    onClick = { state.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold)) },
+                    isSelected = state.currentSpanStyle.fontWeight == FontWeight.Bold,
+                    icon = Icons.Outlined.FormatBold
+                )
+            }
         }
         item {
-            EditorButton(
-                onClick = { state.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic)) },
-                isSelected = state.currentSpanStyle.fontStyle == FontStyle.Italic,
-                icon = Icons.Outlined.FormatItalic
-            )
+            Tooltip(tooltip = "Курсив") {
+                EditorButton(
+                    onClick = { state.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic)) },
+                    isSelected = state.currentSpanStyle.fontStyle == FontStyle.Italic,
+                    icon = Icons.Outlined.FormatItalic
+                )
+            }
         }
         item {
-            EditorButton(
-                onClick = { state.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.Underline)) },
-                isSelected = state.currentSpanStyle.textDecoration?.contains(TextDecoration.Underline) == true,
-                icon = Icons.Outlined.FormatUnderlined
-            )
+            Tooltip(tooltip = "Подчеркивание") {
+                EditorButton(
+                    onClick = { state.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.Underline)) },
+                    isSelected = state.currentSpanStyle.textDecoration?.contains(TextDecoration.Underline) == true,
+                    icon = Icons.Outlined.FormatUnderlined
+                )
+            }
         }
         item {
-            EditorButton(
-                onClick = { state.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) },
-                isSelected = state.currentSpanStyle.textDecoration?.contains(TextDecoration.LineThrough) == true,
-                icon = Icons.Outlined.FormatStrikethrough
-            )
-        }
-
-        item {
-            Divider(Modifier.height(16.dp).width(1.dp))
-        }
-
-        item {
-            EditorButton(
-                onClick = { state.toggleUnorderedList() },
-                isSelected = state.isUnorderedList,
-                icon = Icons.Outlined.FormatListBulleted
-            )
-        }
-        item {
-            EditorButton(
-                onClick = { state.toggleOrderedList() },
-                isSelected = state.isOrderedList,
-                icon = Icons.Outlined.FormatListNumbered
-            )
+            Tooltip(tooltip = "Зачеркивание") {
+                EditorButton(
+                    onClick = { state.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) },
+                    isSelected = state.currentSpanStyle.textDecoration?.contains(TextDecoration.LineThrough) == true,
+                    icon = Icons.Outlined.FormatStrikethrough
+                )
+            }
         }
 
         item {
@@ -164,15 +153,40 @@ fun RichTextStyleRow(
         }
 
         item {
-            EditorButton(
-                onClick = {
-                    if (!state.isLink) {
-                        showLinkDialog = true
-                    }
-                },
-                isSelected = state.isLink,
-                icon = Icons.Outlined.AddLink
-            )
+            Tooltip(tooltip = "Маркированный список") {
+                EditorButton(
+                    onClick = { state.toggleUnorderedList() },
+                    isSelected = state.isUnorderedList,
+                    icon = Icons.Outlined.FormatListBulleted
+                )
+            }
+        }
+        item {
+            Tooltip(tooltip = "Нумерованный список") {
+                EditorButton(
+                    onClick = { state.toggleOrderedList() },
+                    isSelected = state.isOrderedList,
+                    icon = Icons.Outlined.FormatListNumbered
+                )
+            }
+        }
+
+        item {
+            Divider(Modifier.height(16.dp).width(1.dp))
+        }
+
+        item {
+            Tooltip(tooltip = "Ссылка") {
+                EditorButton(
+                    onClick = {
+                        if (!state.isLink) {
+                            showLinkDialog = true
+                        }
+                    },
+                    isSelected = state.isLink,
+                    icon = Icons.Outlined.AddLink
+                )
+            }
         }
     }
 

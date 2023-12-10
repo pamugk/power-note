@@ -27,7 +27,7 @@ fun main() = application {
         title = "PowerNote",
         icon = painterResource("icon_main.svg"),
     ) {
-        this.window.minimumSize = Dimension(300, 500)
+        this.window.minimumSize = Dimension(360, 500)
         if (repositoryInitialized) {
             App(repository)
         } else {

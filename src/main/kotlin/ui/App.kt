@@ -43,8 +43,8 @@ fun App(noteRepository: NoteRepository = InMemoryNoteRepository()) {
 
     AppTheme {
         BoxWithConstraints {
-            val mediumUi = maxWidth < 720.dp
-            val compactUi = maxWidth < 500.dp
+            val mediumUi = maxWidth < 1240.dp
+            val compactUi = maxWidth < 600.dp
 
             Scaffold(
                 bottomBar = {

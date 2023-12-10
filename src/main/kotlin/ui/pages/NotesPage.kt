@@ -83,7 +83,8 @@ fun NotesPage(
                     draft = state.draft,
                     onCreateNew = { state.draft.startEditing(null) },
                     onDraftClick = { state.activePane.value = ActivePane.VIEW },
-                    onItemClick = state::viewNote
+                    onItemClick = state::viewNote,
+                    searchText = state.searchText
                 )
             }
             ActivePane.VIEW -> {

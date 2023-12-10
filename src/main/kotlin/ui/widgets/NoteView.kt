@@ -131,10 +131,12 @@ fun NoteView(
                 actions = { },
                 floatingActionButton = {
                     if (!note.archived && !editInProcess) {
-                        FloatingActionButton(
-                            onClick = onStartEditing,
-                        ) {
-                            Icon(Icons.Default.Edit, "Редактировать")
+                        Tooltip(tooltip = "Редактировать") {
+                            FloatingActionButton(
+                                onClick = onStartEditing,
+                            ) {
+                                Icon(Icons.Default.Edit, "Редактировать")
+                            }
                         }
                     }
                 }

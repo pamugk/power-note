@@ -54,7 +54,8 @@ fun ArchivePage(
                 state.notes.value,
                 modifier = modifier,
                 compact = compact,
-                onItemClick = { state.viewedNote.value = it }
+                onItemClick = { state.viewedNote.value = it },
+                searchText = state.searchText
             )
         } else {
             NoteView(

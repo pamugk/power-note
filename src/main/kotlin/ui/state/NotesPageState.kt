@@ -15,6 +15,7 @@ class NotesPageState(
 
     val activePane = mutableStateOf(initialActivePane)
     val notes = mutableStateOf(initialNotes)
+    val searchText = mutableStateOf("")
     val viewedNote: State<Note?>
         get() = _viewedNote
 

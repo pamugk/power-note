@@ -10,6 +10,7 @@ class ArchivePageState(
     private val onUnarchive: (Note) -> Unit = {},
 ) {
     val notes = mutableStateOf(initialNotes)
+    val searchText = mutableStateOf("")
     val viewedNote = mutableStateOf(initialViewedNote)
 
     fun deleteNote(note: Note) = onDelete(note)
